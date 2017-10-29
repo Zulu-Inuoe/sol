@@ -183,7 +183,6 @@
             (impl (and impl-ptr (trivial-garbage:weak-pointer-value impl-ptr))))
        (unless impl
          (error "sdl2-dispatcher-impl: no impl available during wndproc"))
-       (format t "Doing invoke~%")
        (dispatcher.impl:process-queue (dispatcher impl)))
      0)
     (otherwise
