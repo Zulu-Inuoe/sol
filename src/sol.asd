@@ -155,4 +155,7 @@
    #:sdl2-ttf
    #:split-sequence
    #:trivial-features
-   #:trivial-garbage))
+   #:trivial-garbage
+
+   #+win32
+   #:win32))
