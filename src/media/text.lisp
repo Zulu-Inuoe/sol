@@ -29,87 +29,42 @@
    (text-font
     :type font
     :initarg :font
-    :initform *default-font*
+    :initform (make-instance 'font)
     :reader text-font)
    (text-color
     :type color
     :initarg :color
-    :initform *black*
+    :initform colors:*black*
     :reader text-color)
-   (text-width
-    :type integer
-    :reader text-width)
-   (text-height
-    :type integer
-    :reader text-height)
-   (%text-sdl-surface-ptr
-    :type cons
-    :initform (cons nil nil)
-    :reader %text-sdl-surface-ptr)))
+   (impl
+    :reader text-impl)))
+
+(defmethod initialize-instance :after ((text text) &key &allow-other-keys)
+  (setf (slot-value text 'impl) (make-instance (drivers:text-impl) :text text)))
 
 (defmethod print-object ((text text) stream)
   (print-unreadable-object (text stream :type t)
     (format stream "\"~A\"" (text-string text))))
 
-(defmethod initialize-instance :after ((text text) &key &allow-other-keys)
-  (%render-text text)
-  (trivial-garbage:finalize text (%text-make-dispose-fn text)))
-
-(defmethod dispose ((text text))
-  (trivial-garbage:cancel-finalization text)
-  (funcall (%text-make-dispose-fn text)))
-
 (defun (setf text-string) (value text)
   (when (string-not-equal value (text-string text))
     (setf (slot-value text 'text-string) value)
-    (%render-text text))
+    (drivers:text-set-dirty (text-impl text)))
   value)
 
 (defun (setf text-font) (value text)
   (setf (slot-value text 'text-font) value)
-  (%render-text text)
+  (drivers:text-set-dirty (text-impl text))
   value)
 
 (defun (setf text-color) (value text)
-  (setf (slot-value text 'text-color) value)
-  (%render-text text)
+  (when (not (color= value (text-color text)))
+    (setf (slot-value text 'text-color) value)
+    (drivers:text-set-dirty (text-impl text)))
   value)
 
-(defun %text-sdl-surface (text)
-  (car (%text-sdl-surface-ptr text)))
+(defun text-width (text)
+  (drivers:text-width (text-impl text)))
 
-(defun (setf %text-sdl-surface) (value text)
-  (setf (car (%text-sdl-surface-ptr text)) value))
-
-(defun %text-make-dispose-fn (text)
-  (let ((surface-ptr (%text-sdl-surface-ptr text)))
-    (lambda ()
-      (when (car surface-ptr)
-        (sdl2:free-surface (car surface-ptr))
-        (setf (car surface-ptr) nil)))))
-
-(defun %render-text (text
-                     &aux
-                       (text-string (text-string text))
-                       (font (text-font text))
-                       (color (text-color text)))
-  (when-let ((old-surface (%text-sdl-surface text)))
-    (sdl2:free-surface old-surface)
-    (setf (%text-sdl-surface text) nil))
-
-  (when (zerop (length text-string))
-    (setf (slot-value text 'text-width) 0)
-    (setf (slot-value text 'text-height) 0)
-    (return-from %render-text))
-
-  (let ((surface
-         (sdl2-ttf:render-utf8-blended
-          (%font-ttf-font font)
-          text-string
-          (r color)
-          (g color)
-          (b color)
-          (a color))))
-    (setf (%text-sdl-surface text) surface)
-    (setf (slot-value text 'text-width) (sdl2:surface-width surface))
-    (setf (slot-value text 'text-height) (sdl2:surface-height surface))))
+(defun text-height (text)
+  (drivers:text-height (text-impl text)))

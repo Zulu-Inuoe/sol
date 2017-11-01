@@ -67,8 +67,8 @@
 (defun color-* (color)
   (values (r color) (g color) (b color) (a color)))
 
-(declaim (type (simple-array (unsigned-byte 8) (#.(* 256 256))) +color-avg-table+))
-(defparameter +color-avg-table+
+(declaim (type (simple-array (unsigned-byte 8) (#.(* 256 256))) +color-lerp-table+))
+(defparameter +color-lerp-table+
   (make-array
    '(#.(* 256 256))
    :element-type '(unsigned-byte 8)
@@ -79,15 +79,15 @@
          :collecting
          (round
           (sqrt (/ (+ (* x x) (* y y)) 2))))))
-  "A lookup table that has all color component averages. Access at [x][y] to get average of x and y.
+  "A lookup table that has all color component lerps. Access at [x][y] to get lerp of x and y.
 It is a linear table for reduced space and faster access times.")
 
-(defun color-avg (c1 c2)
+(defun color-lerp (c1 c2)
   (color
-   :r (aref +color-avg-table+ (logior (ash (r c1) 8) (r c2)))
-   :g (aref +color-avg-table+ (logior (ash (g c1) 8) (g c2)))
-   :b (aref +color-avg-table+ (logior (ash (b c1) 8) (b c2)))
-   :a (aref +color-avg-table+ (logior (ash (a c1) 8) (a c2)))))
+   :r (aref +color-lerp-table+ (logior (ash (r c1) 8) (r c2)))
+   :g (aref +color-lerp-table+ (logior (ash (g c1) 8) (g c2)))
+   :b (aref +color-lerp-table+ (logior (ash (b c1) 8) (b c2)))
+   :a (aref +color-lerp-table+ (logior (ash (a c1) 8) (a c2)))))
 
 (defun pack-color-* (r g b a)
   (logior (ash (logand (round r) #xFF) 0)

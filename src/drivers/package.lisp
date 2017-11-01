@@ -28,4 +28,17 @@
 
    #:active-driver
    #:ensure-active-driver
-   #:ensure-shutdown-driver))
+   #:ensure-shutdown-driver
+
+   #:font-impl
+   #:font-height
+   #:font-size-text
+
+   #:text-impl
+   #:text-width
+   #:text-height
+   #:text-set-dirty
+
+   #:image-impl
+   #:image-width
+   #:image-height))

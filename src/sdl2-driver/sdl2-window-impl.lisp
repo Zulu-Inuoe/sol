@@ -18,7 +18,7 @@
 ;;;
 ;;;3. This notice may not be removed or altered from any source distribution.
 
-(in-package #:sol.drivers.sdl2)
+(in-package #:sol.sdl2-driver)
 
 (defclass sdl2-window-impl (finalizable)
   ((ui-window
@@ -30,7 +30,6 @@
     :type sdl2-ffi:sdl-window
     :reader sdl-window)
    (renderer
-    :type media:renderer
     :reader renderer)
    (sdl-window-l
     :type integer
@@ -54,7 +53,7 @@
          (sdl2:create-renderer
           sdl-window -1 (list :accelerated))))
     (sdl2:set-render-draw-blend-mode sdl-renderer sdl2-ffi:+sdl-blendmode-blend+)
-    (make-instance 'media:sdl-renderer :native sdl-renderer)))
+    (make-instance 'sdl2-sdl-renderer :native sdl-renderer)))
 
 (defvar *%in-resize* nil)
 (defvar *%in-closing* nil)
@@ -172,7 +171,7 @@
        '%sdl2-window-impl.window-event)))
 
 (define-finalizer sdl2-window-impl (sdl-window renderer)
-  (media:render-destroy renderer)
+  (dispose renderer)
   (sdl2-ffi.functions:sdl-destroy-window sdl-window))
 
 (defmethod dispose ((impl sdl2-window-impl))

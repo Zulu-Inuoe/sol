@@ -18,7 +18,7 @@
 ;;;
 ;;;3. This notice may not be removed or altered from any source distribution.
 
-(in-package #:sol.drivers.sdl2)
+(in-package #:sol.sdl2-driver)
 
 (defclass sdl2-input-manager (finalizable)
   ((game-controllers

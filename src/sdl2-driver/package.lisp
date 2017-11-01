@@ -18,27 +18,13 @@
 ;;;
 ;;;3. This notice may not be removed or altered from any source distribution.
 
-(in-package #:sol.ui.impl)
-
-(defvar *%current-window-impl-fn*)
-
-(defun current-window-impl-fn ()
-  "The window implementation."
-  *%current-window-impl-fn*)
-
-(defun (setf current-window-impl-fn) (new-value)
-  (setf *%current-window-impl-fn* new-value))
-
-(defgeneric window-id (impl))
-
-(defgeneric window-left (impl))
-(defgeneric (setf window-left) (value impl))
-
-(defgeneric window-top (impl))
-(defgeneric (setf window-top) (value impl))
-
-(defgeneric window-width (impl))
-(defgeneric (setf window-width) (value impl))
-
-(defgeneric window-height (impl))
-(defgeneric (setf window-height) (value impl))
+(defpackage #:sol.sdl2-driver
+  (:use #:alexandria #:cl #:sol.core #:sol.drivers)
+  (:local-nicknames
+   (#:dispatcher #:sol.dispatcher)
+   (#:dispatcher.impl #:sol.dispatcher.impl)
+   (#:input #:sol.input)
+   (#:media #:sol.media)
+   (#:media.colors #:sol.media.colors)
+   (#:ui #:sol.ui)
+   (#:ui.impl #:sol.ui.impl)))

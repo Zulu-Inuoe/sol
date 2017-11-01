@@ -18,9 +18,9 @@
 ;;;
 ;;;3. This notice may not be removed or altered from any source distribution.
 
-(in-package #:sol.drivers.sdl2)
+(in-package #:sol.sdl2-driver)
 
-(defclass sdl2-driver (finalizable)
+(defclass sdl2-gpu-driver (finalizable)
   ((window-callback
     :initarg :window-callback
     :initform nil
@@ -31,16 +31,23 @@
    (input-manager
     :type sdl2-input-manager
     :reader input-manager)
+   (font-context
+    :type sdl2-font-context
+    :reader font-context)
+   (image-context
+    :type sdl2-image-context
+    :reader image-context)
    (windows
     :type cons
     :initform (cons nil nil)
     :reader windows)))
 
-(defmethod initialize-instance :after ((driver sdl2-driver) &key &allow-other-keys)
+(defmethod initialize-instance :after ((driver sdl2-gpu-driver) &key &allow-other-keys)
   (sdl2-ffi.functions:sdl-init (autowrap:mask-apply 'sdl2::sdl-init-flags (list :everything)))
   (sdl2-ffi.functions:sdl-set-hint "SDL_MOUSE_FOCUS_CLICKTHROUGH" "1")
   (sdl2-image:init (list :png :jpg :tif))
   (sdl2-ttf:init)
+  ;;GPU init is done on each window individually
 
   (setf (dispatcher.impl:current-dispatcher-impl-fn)
         (lambda (d)
@@ -57,7 +64,7 @@
           (when (window-callback driver)
             (funcall (window-callback driver) ui-window))
           (make-instance
-           'sdl2-window-impl
+           'sdl2-gpu-window-impl
            :ui-window ui-window
            :title title
            :x x :y y
@@ -65,13 +72,18 @@
            :state state :border-style border-style
            :fullscreen fullscreen :visible visible)))
 
+  (setf (image-impl) 'sdl2-image-impl)
+  (setf (font-impl) 'sdl2-font-impl)
+  (setf (text-impl) 'sdl2-text-impl)
+
   (setf (slot-value driver 'dispatcher) (dispatcher:current-dispatcher))
   (setf (slot-value driver 'input-manager)
         (make-instance 'sdl2-input-manager
                        :e_sdl-event (e_sdl-event (dispatcher.impl:impl (dispatcher driver)))))
-  (media::media-init))
+  (setf (slot-value driver 'font-context) (make-instance 'sdl2-font-context))
+  (setf (slot-value driver 'image-context) (make-instance 'sdl2-image-context)))
 
-(define-finalizer sdl2-driver (dispatcher input-manager windows)
+(define-finalizer sdl2-gpu-driver (dispatcher input-manager font-context image-context windows)
   (loop
      :for wptr :in (car windows)
      :for w := (trivial-garbage:weak-pointer-value wptr)
@@ -79,16 +91,27 @@
      :do (dispose w))
   (setf (car windows) nil)
 
-  (media::media-uninit)
-
+  (dispose image-context)
+  (dispose font-context)
   (dispose input-manager)
   (dispose dispatcher)
+
+  (setf (text-impl) nil)
+  (setf (font-impl) nil)
+  (setf (image-impl) nil)
+
+  (setf (ui.impl:current-window-impl-fn) nil)
+  (setf (dispatcher.impl:current-dispatcher-impl-fn) nil)
+
+  (when *%gpu-already-init*
+    (setf *%gpu-already-init* nil)
+    (sdl2-ffi.functions:gpu-quit))
 
   (sdl2-ttf:quit)
   (sdl2-image:quit)
   (sdl2-ffi.functions:sdl-quit))
 
-(defmethod driver-dispatcher ((driver sdl2-driver))
+(defmethod driver-dispatcher ((driver sdl2-gpu-driver))
   (dispatcher driver))
 
-(define-driver sdl2-driver)
+(define-driver sdl2-gpu-driver)

@@ -18,13 +18,15 @@
 ;;;
 ;;;3. This notice may not be removed or altered from any source distribution.
 
-(defpackage #:sol.drivers.sdl2
-  (:use #:alexandria #:cl #:sol.core #:sol.drivers)
-  (:local-nicknames
-   (#:dispatcher #:sol.dispatcher)
-   (#:dispatcher.impl #:sol.dispatcher.impl)
-   (#:input #:sol.input)
-   (#:media #:sol.media)
-   (#:media.colors #:sol.media.colors)
-   (#:ui #:sol.ui)
-   (#:ui.impl #:sol.ui.impl)))
+(in-package #:sol.core)
+
+(defmacro define-property (name)
+  (let ((value-sym (gensym "VALUE"))
+        (backing-sym (gensym (format nil "*~A*" (symbol-name name)))))
+    `(progn
+       (defvar ,backing-sym nil)
+       (defun ,name ()
+         ,backing-sym)
+       (defun (setf ,name) (,value-sym)
+         (setf ,backing-sym ,value-sym))
+       ',name)))

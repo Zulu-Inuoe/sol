@@ -21,6 +21,9 @@
 (defpackage #:sol.core
   (:use #:alexandria #:cl)
   (:export
+   ;;;define-property
+   #:define-property
+
    ;;;event
    #:event
 

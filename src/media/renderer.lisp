@@ -20,9 +20,6 @@
 
 (in-package #:sol.media)
 
-(defclass renderer ()
-  ())
-
 (defmacro render-with-target ((renderer new-target) &body body)
   (once-only (renderer)
     (with-gensyms (old-target)
@@ -47,10 +44,14 @@
              (render-destroy-target ,new-target)))))))
 
 (defgeneric renderer-size (renderer))
-(defgeneric renderer-width (renderer))
-(defgeneric renderer-height (renderer))
 
-(defgeneric render-destroy (renderer))
+(defgeneric renderer-width (renderer)
+  (:method (renderer)
+    (nth-value 0 (renderer-size renderer))))
+
+(defgeneric renderer-height (renderer)
+  (:method (renderer)
+    (nth-value 1 (renderer-size renderer))))
 
 (defgeneric render-clear (renderer &key color))
 (defgeneric render-present (renderer))

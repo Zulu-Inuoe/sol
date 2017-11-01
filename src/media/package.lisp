@@ -20,24 +20,24 @@
 
 (defpackage #:sol.media
   (:use :alexandria #:cl #:sol.core)
+  (:local-nicknames
+   (#:drivers #:sol.drivers))
   (:export
    #:image
    #:image-path
    #:image-color-key
    #:image-width
    #:image-height
-   #:draw-image
+   #:image-impl
 
    #:frame
    #:frame-width
    #:frame-height
-   #:draw-frame
 
    #:animation
    #:name
    #:animation-width
    #:animation-height
-   #:draw-animation
    #:reset-animation
    #:update-animation
    #:load-animation
@@ -51,6 +51,7 @@
    #:font-italic
    #:font-underline
    #:font-strikethrough
+   #:font-impl
 
    #:font-line-height
    #:font-size-text
@@ -61,7 +62,7 @@
    #:text-color
    #:text-width
    #:text-height
-   #:draw-text
+   #:text-impl
 
    #:color
    #:r
@@ -71,22 +72,19 @@
 
    #:color=
    #:color-*
-   #:color-avg
+   #:color-lerp
    #:pack-color
    #:pack-color-*
    #:unpack-color
    #:unpack-color-*
 
-   #:renderer
-
+   ;;;renderer
    #:render-with-target
    #:render-with-new-target
 
    #:renderer-size
    #:renderer-width
    #:renderer-height
-
-   #:render-destroy
 
    #:render-clear
    #:render-present
@@ -107,11 +105,7 @@
    #:render-get-target
    #:render-set-target
    #:render-draw-target
-   #:render-destroy-target
-
-   #:sdl-renderer
-
-   #:gpu-renderer))
+   #:render-destroy-target))
 
 (defpackage #:sol.media.colors
   (:use #:cl #:sol.media)
@@ -258,3 +252,7 @@
    #:*white-smoke*
    #:*yellow*
    #:*yellow-green*))
+
+(in-package #:sol.media)
+
+(sb-ext:add-package-local-nickname '#:colors '#:sol.media.colors)

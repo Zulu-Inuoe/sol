@@ -18,27 +18,25 @@
 ;;;
 ;;;3. This notice may not be removed or altered from any source distribution.
 
-(in-package #:sol.ui.impl)
+(in-package #:sol.sdl2-driver)
 
-(defvar *%current-window-impl-fn*)
+(defclass sdl2-font-impl ()
+  ((media-font
+    :type media:font
+    :initarg :font
+    :initform (error "sdl2-font-impl: must supply font")
+    :reader %media-font)
+   (ttf-font
+    :type sdl2-ffi:ttf-font
+    :reader ttf-font)))
 
-(defun current-window-impl-fn ()
-  "The window implementation."
-  *%current-window-impl-fn*)
+(defmethod initialize-instance :after ((impl sdl2-font-impl) &key &allow-other-keys)
+  (setf (slot-value impl 'ttf-font) (%load-font (%media-font impl))))
 
-(defun (setf current-window-impl-fn) (new-value)
-  (setf *%current-window-impl-fn* new-value))
+(defmethod font-height ((impl sdl2-font-impl))
+  (sdl2-ffi.functions:ttf-font-height (ttf-font impl)))
 
-(defgeneric window-id (impl))
-
-(defgeneric window-left (impl))
-(defgeneric (setf window-left) (value impl))
-
-(defgeneric window-top (impl))
-(defgeneric (setf window-top) (value impl))
-
-(defgeneric window-width (impl))
-(defgeneric (setf window-width) (value impl))
-
-(defgeneric window-height (impl))
-(defgeneric (setf window-height) (value impl))
+(defmethod font-size-text ((impl sdl2-font-impl) text)
+  (cffi:with-foreign-objects ((w :int) (h :int))
+    (sdl2-ffi.functions:ttf-size-utf8 (ttf-font impl) text w h)
+    (values (cffi:mem-ref w :int) (cffi:mem-ref h :int))))

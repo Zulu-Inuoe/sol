@@ -27,6 +27,9 @@
    (#:media #:sol.media)
    (#:ui #:sol.ui))
   (:export
+   ;;;define-property
+   #:define-property
+
    ;;;event
    #:event
 

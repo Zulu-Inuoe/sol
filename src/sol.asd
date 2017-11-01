@@ -39,8 +39,6 @@
    (:file "ui/impl/package")
    (:file "ui/package")
 
-   (:file "drivers/sdl2/package")
-
    (:file "package")
 
    (:module "core"
@@ -48,7 +46,13 @@
     :components
     ((:file "event")
      (:file "dispose")
+     (:file "define-property")
      (:file "finalizer")))
+
+   (:module "drivers"
+    :serial t
+    :components
+    ((:file "drivers")))
 
    (:module "dispatcher"
     :serial t
@@ -80,12 +84,8 @@
      (:file "image")
 
      (:file "renderer")
-     (:file "sdl-renderer")
-     (:file "gpu-renderer")
 
-     (:file "animation")
-
-     (:file "context")))
+     (:file "animation")))
 
    (:module "ui"
     :serial t
@@ -126,21 +126,40 @@
      (:file "dock-panel")
      (:file "grid")))
 
-   (:module "drivers"
+   ;;;app
+   (:file "app")
+
+   (:module "sdl2-driver"
     :serial t
     :components
-    ((:file "drivers")
-     (:module "sdl2"
-      :serial t
-      :components
-      ((:file "sdl2-dispatcher-impl")
-       (:file "sdl2-input-manager")
-       (:file "sdl2-window-impl")
-       (:file "sdl2-gpu-window-impl")
-       (:file "sdl2-gpu-driver")
-       (:file "sdl2-driver")))))
-   ;;;app
-   (:file "app"))
+    ((:file "package")
+     ;;dispatcher impl
+     (:file "sdl2-dispatcher-impl")
+
+     ;;font
+     (:file "sdl2-font-context")
+     (:file "sdl2-font-impl")
+
+     ;;text
+     (:file "sdl2-text-impl")
+
+     ;;image
+     (:file "sdl2-image-context")
+     (:file "sdl2-image-impl")
+
+     ;;renderer
+     (:file "sdl2-sdl-renderer")
+     (:file "sdl2-gpu-renderer")
+
+     (:file "sdl2-input-manager")
+
+     ;;window impl
+     (:file "sdl2-window-impl")
+     (:file "sdl2-gpu-window-impl")
+
+     ;;driver
+     (:file "sdl2-gpu-driver")
+     (:file "sdl2-driver"))))
   :depends-on
   (#:alexandria
    #:bordeaux-threads

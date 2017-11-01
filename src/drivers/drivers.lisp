@@ -53,3 +53,22 @@
   (when (active-driver)
     (dispose (active-driver))
     (setf *%active-driver* nil)))
+
+;;;Font
+(define-property font-impl)
+
+(defgeneric font-height (font-impl))
+(defgeneric font-size-text (font-impl text))
+
+;;;Text
+(define-property text-impl)
+
+(defgeneric text-width (text-impl))
+(defgeneric text-height (text-impl))
+(defgeneric text-set-dirty (text-impl))
+
+;;;image
+(define-property image-impl)
+
+(defgeneric image-width (image-impl))
+(defgeneric image-height (image-impl))

@@ -18,7 +18,7 @@
 ;;;
 ;;;3. This notice may not be removed or altered from any source distribution.
 
-(in-package #:sol.drivers.sdl2)
+(in-package #:sol.sdl2-driver)
 
 (defclass sdl2-gpu-window-impl (sdl2-window-impl)
   ((gpu-target
@@ -38,7 +38,7 @@
             (prog1 (sdl2-ffi.functions:gpu-init 0 0 0)
               (setf *%gpu-already-init* t))))))
     (setf (slot-value impl 'gpu-target) gpu-target)
-    (make-instance 'media:gpu-renderer :gpu-target gpu-target)))
+    (make-instance 'sdl2-gpu-renderer :gpu-target gpu-target)))
 
 (defmethod sdl-window-event ((impl sdl2-gpu-window-impl) event)
   (case (input:event-type event)
