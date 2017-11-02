@@ -21,11 +21,7 @@
 (in-package #:sol.input)
 
 (defclass input-manager ()
-  ((e_window-event
-    :type event
-    :initform (make-instance 'event :name "window-event")
-    :reader e_window-event)
-   (e_mouse-move
+  ((e_mouse-move
     :type event
     :initform (make-instance 'event :name "mouse-move")
     :reader e_mouse-move)

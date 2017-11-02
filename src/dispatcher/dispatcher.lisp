@@ -78,8 +78,6 @@
    (sync-lock
     :initform (bordeaux-threads:make-lock)
     :reader sync-lock)
-   (impl
-    :reader impl)
    (%dispatcher-frames
     :type list
     :initform nil
@@ -101,17 +99,8 @@
     :initform (make-instance 'event :name "unhandled-error")
     :accessor e_unhandled-error)))
 
-(defmethod initialize-instance :after ((obj dispatcher)
-                                       &key
-                                         &allow-other-keys)
-  (let ((impl-fn (impl:current-dispatcher-impl-fn)))
-    (unless impl-fn
-      (error "dispatcher: no impl-fn available."))
-
-    (setf (slot-value obj 'impl) (funcall impl-fn obj)))
-
+(defmethod initialize-instance :after ((obj dispatcher) &key &allow-other-keys)
   (setf (gethash (bordeaux-threads:current-thread) *%dispatchers*) obj))
-
 
 (defvar *%dispatchers* (make-hash-table)
   "A mapping of thread-id's to `dispatcher's.
@@ -122,23 +111,17 @@
               (shutdown-finished obj))
     (invoke-shutdown obj))
 
-  (unwind-protect
-       (dispose (impl obj))
-    (slot-makunbound obj 'impl)
-    (loop
-       :for (thread . disp) :in (hash-table-alist *%dispatchers*)
-       :when (eq obj disp)
-       :do (remhash thread *%dispatchers*))
-    (call-next-method)))
+  (loop
+     :for (thread . disp) :in (hash-table-alist *%dispatchers*)
+     :when (eq obj disp)
+     :do (remhash thread *%dispatchers*))
+  (call-next-method))
 
 (defun from-thread (thread)
   "Gets the `dispatcher' for the given thread, or NIL if no such `dispatcher' exists."
   (values (gethash thread *%dispatchers*)))
 
-(defun current-dispatcher ()
-  "Gets the `dispatcher' belonging to the current thread."
-  (or (from-thread (bordeaux-threads:current-thread))
-      (make-instance 'dispatcher)))
+(declaim (ftype (function () dispatcher) current-dispatcher))
 
 (defmethod check-access ((dispatcher dispatcher))
   "Returns true if the current thread has access to the given `dispatcher'."
@@ -197,7 +180,7 @@ in order to verify that said operations are legal."))
             :while (and (not (%exit-all-frames d))
                         (not (shutdown-started d))
                         (continue-frame frame))
-            :if (impl:wait-invoke-signal (impl d))
+            :if (impl:wait-invoke-signal d)
             :do (impl:process-queue d))
       (pop (%dispatcher-frames d)))
 
@@ -234,7 +217,6 @@ in order to verify that said operations are legal."))
   (begin-invoke dispatcher #'%shutdown-callback-impl)
   (values))
 
-(trace invoke)
 (defun invoke (dispatcher fn &key (priority +priority.normal+)
                &aux (ret-value nil))
   "Request the thread owning DISPATCHER to invoke FN synchronously, returning the result."
@@ -305,9 +287,6 @@ in order to verify that said operations are legal."))
 (defmacro do-invoke ((dispatcher) &body body)
   `(invoke ,dispatcher (lambda () ,@body)))
 
-(defun impl:impl (dispatcher)
-  (impl dispatcher))
-
 (defun impl:process-queue (dispatcher)
   "Processes one invoke item from the `dispatcher''s queue."
   (let (fn)
@@ -340,7 +319,7 @@ in order to verify that said operations are legal."))
 (defun %begin-invoke-impl (dispatcher fn priority)
   (bordeaux-threads:with-lock-held ((queue-lock dispatcher))
     (cl-heap:enqueue (queue dispatcher) fn priority))
-  (impl:send-invoke-signal (impl dispatcher))
+  (impl:send-invoke-signal dispatcher)
   (values))
 
 (defun %shutdown-callback-impl ()

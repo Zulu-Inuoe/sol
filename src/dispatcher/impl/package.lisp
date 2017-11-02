@@ -21,10 +21,6 @@
 (defpackage #:sol.dispatcher.impl
   (:use #:cl)
   (:export
-   #:impl
    #:process-queue
-
-   #:current-dispatcher-impl-fn
-
    #:wait-invoke-signal
    #:send-invoke-signal))

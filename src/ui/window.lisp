@@ -20,7 +20,7 @@
 
 (in-package #:sol.ui)
 
-(defclass window (content-control finalizable)
+(defclass window (content-control)
   ((focus-manager
     :initform (make-instance 'focus-manager)
     :reader focus-manager)
@@ -48,19 +48,19 @@
 
 (defgeneric window-left (comp)
   (:method ((comp window))
-    (impl:window-impl-left (impl comp))))
+    (drivers:window-left (impl comp))))
 
 (defgeneric (setf window-left) (value comp)
   (:method (value (comp window))
-    (setf (impl:window-impl-left (impl comp)) value)))
+    (setf (drivers:window-left (impl comp)) value)))
 
 (defgeneric window-top (comp)
   (:method ((comp window))
-    (impl:window-impl-top (impl comp))))
+    (drivers:window-top (impl comp))))
 
 (defgeneric (setf window-top) (value comp)
   (:method (value (comp window))
-    (setf (impl:window-impl-top (impl comp)) value)))
+    (setf (drivers:window-top (impl comp)) value)))
 
 (defgeneric window-close (comp)
   (:method ((comp window))
@@ -74,23 +74,6 @@
           (setf (%closing comp) nil))
 
         (setf (%closed comp) t)
-
-        (let ((input (input:current-input-manager)))
-          (event-unsubscribe
-           (input:e_mouse-button input)
-           comp)
-          (event-unsubscribe
-           (input:e_mouse-move input)
-           comp)
-          (event-unsubscribe
-           (input:e_mouse-wheel input)
-           comp)
-          (event-unsubscribe
-           (input:e_key input)
-           comp)
-          (event-unsubscribe
-           (input:e_text-input input)
-           comp))
 
         (unwind-protect
              (dispose (impl comp))
@@ -112,58 +95,37 @@
                                          (fullscreen nil)
                                          (visible t)
                                        &allow-other-keys)
-  (drivers:ensure-active-driver)
+  (setf (slot-value comp 'impl)
+        (make-instance
+         (drivers:driver-window-impl (drivers:active-driver))
+         :window comp
+         :title title
+         :x left :y top
+         :width width :height height
+         :state state
+         :border-style border-style
+         :fullscreen fullscreen
+         :visible visible)))
 
-  (let ((impl-fn (impl:current-window-impl-fn)))
-    (unless impl-fn
-      (error "dispatcher: no impl-fn available."))
+(declaim (ftype (function () t) current-app))
+(defgeneric app-add-window (app window))
 
-    (setf (slot-value comp 'impl)
-          (funcall impl-fn comp
-                   :title title
-                   :x left :y top
-                   :width width :height height
-                   :state state
-                   :border-style border-style
-                   :fullscreen fullscreen
-                   :visible visible)))
-
-  (let ((input (input:current-input-manager)))
-    (event-subscribe
-     (input:e_mouse-button input)
-     comp
-     '%window.mouse-button)
-    (event-subscribe
-     (input:e_mouse-move input)
-     comp
-     '%window.mouse-move)
-    (event-subscribe
-     (input:e_mouse-wheel input)
-     comp
-     '%window.mouse-wheel)
-    (event-subscribe
-     (input:e_key input)
-     comp
-     '%window.key)
-    (event-subscribe
-     (input:e_text-input input)
-     comp
-     '%window.text-input)))
-
-(defmethod dispose ((obj window))
-  (call-next-method))
+(defmethod initialize-instance :around ((comp window) &key &ellow-other-keys)
+  (call-next-method)
+  (when (current-app)
+    (app-add-window (current-app) comp)))
 
 (defmethod (setf width) (val (comp window))
-  (setf (impl:window-impl-width (impl comp)) val)
-  (call-next-method (impl:window-impl-width (impl comp)) comp))
+  (setf (drivers:window-width (impl comp)) val)
+  (call-next-method (drivers:window-width (impl comp)) comp))
 
 (defmethod (setf height) (val (comp window))
-  (setf (impl:window-impl-height (impl comp)) val)
-  (call-next-method (impl:window-impl-height (impl comp)) comp))
+  (setf (drivers::window-height (impl comp)) val)
+  (call-next-method (drivers:window-height (impl comp)) comp))
 
 (defmethod measure-override ((comp window) available-width available-height)
-  (let ((des-w (impl:window-impl-width (impl comp)))
-        (des-h (impl:window-impl-height (impl comp))))
+  (let ((des-w (drivers:window-width (impl comp)))
+        (des-h (drivers:window-height (impl comp))))
     (when (%presenter comp)
       (multiple-value-bind (min-w max-w min-h max-h)
           (%window.min-max comp)
@@ -190,29 +152,20 @@
   (arrange comp 0 0 (desired-width comp) (desired-height comp))
   (call-next-method))
 
+(defun %window.min-max (comp)
+  (let (min-w max-w min-h max-h)
+    (setf min-w (or (min-width comp) 0))
+    (setf min-h (or (min-height comp) 0))
+    (setf max-w (or (max-width comp) (drivers:window-width (impl comp))))
+    (setf max-h (or (max-height comp) (drivers:window-height (impl comp))))
+    (values min-w max-w min-h max-h)))
+
 (defun impl:impl (window)
   (impl window))
 
 (defun impl:impl-closed (window)
   (unless (%closed window)
     (setf (%closed window) t)
-
-    (let ((input (input:current-input-manager)))
-      (event-unsubscribe
-       (input:e_mouse-button input)
-       window)
-      (event-unsubscribe
-       (input:e_mouse-move input)
-       window)
-      (event-unsubscribe
-       (input:e_mouse-wheel input)
-       window)
-      (event-unsubscribe
-       (input:e_key input)
-       window)
-      (event-unsubscribe
-       (input:e_text-input input)
-       window))
 
     (unwind-protect
          (dispose (impl window))
@@ -221,75 +174,62 @@
        (e_window-closed window)
        window))))
 
-(defun %window.min-max (comp)
-  (let (min-w max-w min-h max-h)
-    (setf min-w (or (min-width comp) 0))
-    (setf min-h (or (min-height comp) 0))
-    (setf max-w (or (max-width comp) (impl:window-impl-width (impl comp))))
-    (setf max-h (or (max-height comp) (impl:window-impl-height (impl comp))))
-    (values min-w max-w min-h max-h)))
+(defun impl:impl-mouse-button (window args)
+  (when-let ((target (or (capturing-component)
+                         (get-component-at-* window (input:x args) (input:y args)))))
+    (raise-event
+     target
+     (if (input:button-pressed args)
+         'e_mouse-down
+         'e_mouse-up)
+     (make-instance
+      'routed-input-args
+      :source target
+      :args args))))
 
-(defun %window.mouse-button (window args)
-  (when (= (impl:window-impl-id (impl window)) (input:window-id args))
-    (when-let ((target (or (capturing-component)
-                           (get-component-at-* window (input:x args) (input:y args)))))
-      (raise-event
-       target
-       (if (input:button-pressed args)
-           'e_mouse-down
-           'e_mouse-up)
-       (make-instance
-        'routed-input-args
-        :source target
-        :args args)))))
+(defun impl:impl-mouse-move (window args)
+  (when-let ((target (or (capturing-component)
+                         (get-component-at-* window (input:x args) (input:y args)))))
+    (raise-event
+     target
+     'e_mouse-move
+     (make-instance
+      'routed-input-args
+      :source target
+      :args args))
 
-(defun %window.mouse-move (window args)
-  (when (= (impl:window-impl-id (impl window)) (input:window-id args))
-    (when-let ((target (or (capturing-component)
-                           (get-component-at-* window (input:x args) (input:y args)))))
-      (raise-event
-       target
-       'e_mouse-move
-       (make-instance
-        'routed-input-args
-        :source target
-        :args args))
+    (unless (capturing-component)
+      (setf (mouse-over-component) target))))
 
-      (unless (capturing-component)
-        (setf (mouse-over-component) target)))))
+(defun impl:impl-mouse-wheel (window args)
+  (when-let ((target (or (capturing-component)
+                         (get-component-at-* window (input:x args) (input:y args)))))
+    (raise-event
+     target
+     'e_mouse-wheel
+     (make-instance
+      'routed-input-args
+      :source target
+      :args args))))
 
-(defun %window.mouse-wheel (window args)
-  (when (= (impl:window-impl-id (impl window)) (input:window-id args))
-    (when-let ((target (or (capturing-component)
-                           (get-component-at-* window (input:x args) (input:y args)))))
-      (raise-event
-       target
-       'e_mouse-wheel
-       (make-instance
-        'routed-input-args
-        :source target
-        :args args)))))
+(defun impl:impl-key (window args)
+  (when-let ((target (focused-component (active-focus-manager))))
+    (raise-event
+     target
+     (if (input:key-pressed args)
+         'e_key-down
+         'e_key-up)
+     (make-instance
+      'routed-input-args
+      :source target
+      :args args))))
 
-(defun %window.key (window args)
-  (when (= (impl:window-impl-id (impl window)) (input:window-id args))
-    (when-let ((target (focused-component (active-focus-manager))))
-      (raise-event
-       target
-       (if (input:key-pressed args)
-           'e_key-down
-           'e_key-up)
-       (make-instance
-        'routed-input-args
-        :source target
-        :args args)))))
-
-(defun %window.text-input (window args)
-  (when (= (impl:window-impl-id (impl window)) (input:window-id args))
-    (when-let ((target (focused-component (active-focus-manager))))
-      (raise-event
-       target
-       'e_text-input
-       (make-instance
-        'routed-input-args
-        :source target
-        :args args)))))
+(defun impl:impl-text-input (window args)
+  (when-let ((target (focused-component (active-focus-manager))))
+    (raise-event
+     target
+     'e_text-input
+     (make-instance
+      'routed-input-args
+      :source target
+      :args args))))

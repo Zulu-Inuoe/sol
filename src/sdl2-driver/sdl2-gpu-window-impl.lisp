@@ -40,10 +40,10 @@
     (setf (slot-value impl 'gpu-target) gpu-target)
     (make-instance 'sdl2-gpu-renderer :gpu-target gpu-target)))
 
-(defmethod sdl-window-event ((impl sdl2-gpu-window-impl) event)
-  (case (input:event-type event)
+(defmethod sdl-window-event ((impl sdl2-gpu-window-impl) event-type data1 data2)
+  (case event-type
     ((:size-changed :resized)
-     (sdl2-ffi.functions:gpu-make-current (gpu-target impl) (input:window-id event))
-     (sdl2-ffi.functions:gpu-set-window-resolution (input:data1 event) (input:data2 event))))
+     (sdl2-ffi.functions:gpu-make-current (gpu-target impl) (sdl2:get-window-id (sdl-window impl)))
+     (sdl2-ffi.functions:gpu-set-window-resolution data1 data2)))
 
   (call-next-method))

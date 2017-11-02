@@ -69,7 +69,7 @@
    "Represents font information."))
 
 (defmethod initialize-instance :after ((font font) &key &allow-other-keys)
-  (setf (slot-value font 'impl) (make-instance (drivers:font-impl) :font font)))
+  (setf (slot-value font 'impl) (make-instance (drivers:driver-font-impl (drivers:active-driver)) :font font)))
 
 (defmethod print-object ((f font) stream)
   (print-unreadable-object (f stream :type t)

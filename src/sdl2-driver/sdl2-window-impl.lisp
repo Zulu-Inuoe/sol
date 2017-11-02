@@ -23,8 +23,8 @@
 (defclass sdl2-window-impl (finalizable)
   ((ui-window
     :type ui:window
-    :initarg :ui-window
-    :initform (error "sdl2-window-impl: must supply ui-window")
+    :initarg :window
+    :initform (error "sdl2-window-impl: must supply window")
     :reader ui-window)
    (sdl-window
     :type sdl2-ffi:sdl-window
@@ -45,7 +45,7 @@
     :accessor sdl-window-h)))
 
 (defgeneric sdl-create-renderer (impl sdl-window))
-(defgeneric sdl-window-event (impl event))
+(defgeneric sdl-window-event (impl event-type data1 data2))
 (defgeneric sdl-draw (impl))
 
 (defmethod sdl-create-renderer ((impl sdl2-window-impl) sdl-window)
@@ -57,26 +57,26 @@
 
 (defvar *%in-resize* nil)
 (defvar *%in-closing* nil)
-(defmethod sdl-window-event ((impl sdl2-window-impl) event)
-  (case (input:event-type event)
+(defmethod sdl-window-event ((impl sdl2-window-impl) event-type data1 data2)
+  (case event-type
     (:shown
      (sdl-draw impl))
     (:hidden)
     (:exposed
      (sdl-draw impl))
     (:moved
-     (setf (sdl-window-l impl) (input:data1 event)
-           (sdl-window-t impl) (input:data2 event)))
+     (setf (sdl-window-l impl) data1
+           (sdl-window-t impl) data2))
     (:resized
-     (setf (sdl-window-w impl) (input:data1 event)
-           (sdl-window-h impl) (input:data2 event))
+     (setf (sdl-window-w impl) data1
+           (sdl-window-h impl) data2)
      (let ((*%in-resize* t))
        (setf (ui:width (ui-window impl)) (sdl-window-w impl)
              (ui:height (ui-window impl)) (sdl-window-h impl)))
      (sdl-draw impl))
     (:size-changed
-     (setf (sdl-window-w impl) (input:data1 event)
-           (sdl-window-h impl) (input:data2 event))
+     (setf (sdl-window-w impl) data1
+           (sdl-window-h impl) data2)
      (let ((*%in-resize* t))
        (setf (ui:width (ui-window impl)) (sdl-window-w impl)
              (ui:height (ui-window impl)) (sdl-window-h impl)))
@@ -87,7 +87,7 @@
     (:enter
      (multiple-value-bind (x y) (input:mouse-position)
        (setf (ui:mouse-over-component)
-             (ui:get-component-at-* (ui-window impl) (- x (ui.impl:window-impl-left impl)) (- y (ui.impl:window-impl-top impl))))))
+             (ui:get-component-at-* (ui-window impl) (- x (window-left impl)) (- y (window-top impl))))))
     (:leave
      (setf (ui:mouse-over-component) nil))
     (:focus-gained
@@ -164,21 +164,20 @@
           (sdl2:show-window sdl-window))
         (setf *%sdl-window-first-window* nil)))
 
-    (let ((input (input:current-input-manager)))
-      (event-subscribe
-       (input:e_window-event input)
-       impl
-       '%sdl2-window-impl.window-event)))
+    (event-subscribe
+     *e_sdl2-event*
+     impl
+     '%sdl2-window-impl.sdl2-event))
 
 (define-finalizer sdl2-window-impl (sdl-window renderer)
-  (dispose renderer)
-  (sdl2-ffi.functions:sdl-destroy-window sdl-window))
+  (unwind-protect
+       (dispose renderer)
+    (sdl2-ffi.functions:sdl-destroy-window sdl-window)))
 
 (defmethod dispose ((impl sdl2-window-impl))
-  (let ((input (input:current-input-manager)))
-    (event-unsubscribe
-     (input:e_window-event input)
-     impl))
+  (event-unsubscribe
+   *e_sdl2-event*
+   impl)
   (unless *%in-closing*
     (ui.impl:impl-closed (ui-window impl)))
   (slot-makunbound impl 'ui-window)
@@ -186,13 +185,10 @@
   (slot-makunbound impl 'renderer)
   (slot-makunbound impl 'sdl-window))
 
-(defmethod ui.impl:window-impl-id ((impl sdl2-window-impl))
-  (sdl2-ffi.functions:sdl-get-window-id (sdl-window impl)))
-
-(defmethod ui.impl:window-impl-left ((impl sdl2-window-impl))
+(defmethod window-left ((impl sdl2-window-impl))
   (sdl-window-l impl))
 
-(defmethod (setf ui.impl:window-impl-left) (value (impl sdl2-window-impl))
+(defmethod (setf window-left) (value (impl sdl2-window-impl))
   (setf value (round value))
   (sdl2-ffi.functions:sdl-set-window-position
    (sdl-window impl)
@@ -202,10 +198,10 @@
   (setf value (sdl-window-l impl))
   value)
 
-(defmethod ui.impl:window-impl-top ((impl sdl2-window-impl))
+(defmethod window-top ((impl sdl2-window-impl))
   (sdl-window-t impl))
 
-(defmethod (setf ui.impl:window-impl-top) (value (impl sdl2-window-impl))
+(defmethod (setf window-top) (value (impl sdl2-window-impl))
   (setf value (round value))
   (sdl2-ffi.functions:sdl-set-window-position
    (sdl-window impl)
@@ -215,10 +211,10 @@
   (setf value (sdl-window-t impl))
   value)
 
-(defmethod ui.impl:window-impl-width ((impl sdl2-window-impl))
+(defmethod window-width ((impl sdl2-window-impl))
   (sdl-window-w impl))
 
-(defmethod (setf ui.impl:window-impl-width) (value (impl sdl2-window-impl))
+(defmethod (setf window-width) (value (impl sdl2-window-impl))
   (unless *%in-resize*
     (setf value (round value))
     (sdl2-ffi.functions:sdl-set-window-size
@@ -228,10 +224,10 @@
     (%sdl2-window-impl.refresh-size impl))
   (sdl-window-h impl))
 
-(defmethod ui.impl:window-impl-height ((impl sdl2-window-impl))
+(defmethod window-height ((impl sdl2-window-impl))
   (sdl-window-h impl))
 
-(defmethod (setf ui.impl:window-impl-height) (value (impl sdl2-window-impl))
+(defmethod (setf window-height) (value (impl sdl2-window-impl))
   (unless *%in-resize*
     (setf value (round value))
     (sdl2-ffi.functions:sdl-set-window-size
@@ -257,6 +253,237 @@
           (sdl-window-h impl) (cffi:mem-ref height :int)))
   (values))
 
-(defun %sdl2-window-impl.window-event (impl args)
-  (when (= (ui.impl:window-impl-id impl) (input:window-id args))
-    (sdl-window-event impl args)))
+(defun %sdl2-window-impl.sdl2-event (impl sdl-event
+                                     &aux
+                                       (ui-window (ui-window impl))
+                                       (sdl-event-type (sdl2:get-event-type sdl-event)))
+  (unless (%window-owns-event-p (sdl-window impl) sdl-event)
+    (return-from %sdl2-window-impl.sdl2-event))
+
+  (case sdl-event-type
+    ((:mousebuttondown :mousebuttonup)
+     (let ((device :keyboard/mouse)
+           (mod (sdl2-ffi.functions:sdl-get-mod-state))
+           (button
+            (%mouse-val->sym
+             (plus-c:c-ref
+              sdl-event
+              sdl2-ffi:sdl-event
+              :button :button)))
+           (button-pressed
+            (= (plus-c:c-ref sdl-event sdl2-ffi:sdl-event :button :state)
+               sdl2-ffi:+sdl-pressed+)))
+       (multiple-value-bind (state x y)
+           (%mouse-state)
+         (ui.impl:impl-mouse-button
+          ui-window
+          (make-instance
+           'input:mouse-button-event-args
+           :device device
+           :alt (logtest mod sdl2-ffi:+kmod-alt+)
+           :ctrl (logtest mod sdl2-ffi:+kmod-ctrl+)
+           :shift (logtest mod sdl2-ffi:+kmod-shift+)
+           :gui (logtest mod sdl2-ffi:+kmod-gui+)
+           :x x
+           :y y
+           :left-button (logtest state sdl2-ffi:+sdl-button-lmask+)
+           :middle-button (logtest state sdl2-ffi:+sdl-button-mmask+)
+           :right-button (logtest state sdl2-ffi:+sdl-button-rmask+)
+           :x1-button (logtest state sdl2-ffi:+sdl-button-x1mask+)
+           :x2-button (logtest state sdl2-ffi:+sdl-button-x2mask+)
+           :button button
+           :button-pressed button-pressed)))))
+    (:mousemotion
+     (let ((device
+            :keyboard/mouse)
+           (mod (sdl2-ffi.functions:sdl-get-mod-state)))
+       (multiple-value-bind (state x y)
+           (%mouse-state)
+         (ui.impl:impl-mouse-move
+          ui-window
+          (make-instance
+           'input:mouse-event-args
+           :device device
+           :alt (logtest mod sdl2-ffi:+kmod-alt+)
+           :ctrl (logtest mod sdl2-ffi:+kmod-ctrl+)
+           :shift (logtest mod sdl2-ffi:+kmod-shift+)
+           :gui (logtest mod sdl2-ffi:+kmod-gui+)
+           :x x
+           :y y
+           :left-button (logtest state sdl2-ffi:+sdl-button-lmask+)
+           :middle-button (logtest state sdl2-ffi:+sdl-button-mmask+)
+           :right-button (logtest state sdl2-ffi:+sdl-button-rmask+)
+           :x1-button (logtest state sdl2-ffi:+sdl-button-x1mask+)
+           :x2-button (logtest state sdl2-ffi:+sdl-button-x2mask+))))))
+    (:mousewheel
+     (let ((device
+            :keyboard/mouse)
+           (mod (sdl2-ffi.functions:sdl-get-mod-state))
+           (delta (plus-c:c-ref sdl-event sdl2-ffi:sdl-event :wheel :y))
+           (direction (plus-c:c-ref sdl-event sdl2-ffi:sdl-event :wheel :direction)))
+       (when (= direction sdl2-ffi:+sdl-mousewheel-flipped+)
+         (setf direction (- direction)))
+
+       (multiple-value-bind (state x y)
+           (%mouse-state)
+         (ui.impl:impl-mouse-wheel
+          ui-window
+          (make-instance
+           'input:mouse-wheel-event-args
+           :device device
+           :alt (logtest mod sdl2-ffi:+kmod-alt+)
+           :ctrl (logtest mod sdl2-ffi:+kmod-ctrl+)
+           :shift (logtest mod sdl2-ffi:+kmod-shift+)
+           :gui (logtest mod sdl2-ffi:+kmod-gui+)
+           :x x
+           :y y
+           :left-button (logtest state sdl2-ffi:+sdl-button-lmask+)
+           :middle-button (logtest state sdl2-ffi:+sdl-button-mmask+)
+           :right-button (logtest state sdl2-ffi:+sdl-button-rmask+)
+           :x1-button (logtest state sdl2-ffi:+sdl-button-x1mask+)
+           :x2-button (logtest state sdl2-ffi:+sdl-button-x2mask+)
+           :delta delta)))))
+    (:windowevent
+     (let* ((event-type
+             (plus-c:c-ref
+              sdl-event
+              sdl2-ffi:sdl-event
+              :window :event))
+            (data1
+             (plus-c:c-ref
+              sdl-event
+              sdl2-ffi:sdl-event
+              :window :data1))
+            (data2
+             (plus-c:c-ref
+              sdl-event
+              sdl2-ffi:sdl-event
+              :window :data2)))
+       (sdl-window-event impl (%window-event->sym event-type) data1 data2)))
+    ((:keydown :keyup)
+     (let* ((device
+             :keyboard/mouse)
+            (keysym
+             (plus-c:c-ref
+              sdl-event
+              sdl2-ffi:sdl-event :key :keysym))
+            (mod (sdl2:mod-value keysym))
+            (key (sdl2:scancode-symbol
+                  (sdl2:scancode-value keysym)))
+            (key-pressed
+             (= (plus-c:c-ref sdl-event sdl2-ffi:sdl-event :key :state)
+                sdl2-ffi:+sdl-pressed+))
+            (repeat
+             (/= 0  (plus-c:c-ref
+                     sdl-event
+                     sdl2-ffi:sdl-event
+                     :key :repeat))))
+       (declare (ignore repeat))
+       (ui.impl:impl-key
+        ui-window
+        (make-instance
+         'input:key-event-args
+         :device device
+         :alt (logtest mod sdl2-ffi:+kmod-alt+)
+         :ctrl (logtest mod sdl2-ffi:+kmod-ctrl+)
+         :shift (logtest mod sdl2-ffi:+kmod-shift+)
+         :gui (logtest mod sdl2-ffi:+kmod-gui+)
+         :key key
+         :pressed key-pressed))))
+    (:textinput
+     (let* ((text-ptr
+             (plus-c:c-ref
+              sdl-event
+              sdl2-ffi:sdl-event
+              :text :text plus-c:&))
+            (text
+             (cffi:foreign-string-to-lisp
+              text-ptr
+              :max-chars 31
+              :encoding :utf-8)))
+       (ui.impl:impl-text-input
+        ui-window
+        (make-instance
+         'input:text-input-event-args
+         :text text))))
+    (:textediting)))
+
+(defun %window-owns-event-p (sdl-window sdl-event
+                             &aux
+                               (window-id (sdl2:get-window-id sdl-window))
+                               (sdl-event-type (sdl2:get-event-type sdl-event)))
+  (eql
+   window-id
+   (case sdl-event-type
+     ((:mousebuttondown :mousebuttonup)
+      (plus-c:c-ref
+       sdl-event
+       sdl2-ffi:sdl-event
+       :button :window-id))
+     (:mousemotion
+      (plus-c:c-ref
+       sdl-event
+       sdl2-ffi:sdl-event
+       :motion :window-id))
+     (:mousewheel
+      (plus-c:c-ref
+       sdl-event
+       sdl2-ffi:sdl-event
+       :wheel :window-id))
+     (:windowevent
+      (plus-c:c-ref
+       sdl-event
+       sdl2-ffi:sdl-event
+       :window :window-id))
+     ((:keydown :keyup)
+      (plus-c:c-ref
+       sdl-event
+       sdl2-ffi:sdl-event
+       :key :window-id))
+     (:textinput
+      (plus-c:c-ref
+       sdl-event
+       sdl2-ffi:sdl-event
+       :text :window-id))
+     (:textediting
+      (plus-c:c-ref
+       sdl-event
+       sdl2-ffi:sdl-event
+       :edit :window-id))
+     (t nil))))
+
+(defun %window-event->sym (val)
+  (eswitch (val)
+    (sdl2-ffi:+sdl-windowevent-none+ :none)
+    (sdl2-ffi:+sdl-windowevent-shown+ :shown)
+    (sdl2-ffi:+sdl-windowevent-hidden+ :hidden)
+    (sdl2-ffi:+sdl-windowevent-exposed+ :exposed)
+    (sdl2-ffi:+sdl-windowevent-moved+ :moved)
+    (sdl2-ffi:+sdl-windowevent-resized+ :resized)
+    (sdl2-ffi:+sdl-windowevent-size-changed+ :size-changed)
+    (sdl2-ffi:+sdl-windowevent-minimized+ :minimized)
+    (sdl2-ffi:+sdl-windowevent-maximized+ :maximized)
+    (sdl2-ffi:+sdl-windowevent-restored+ :restored)
+    (sdl2-ffi:+sdl-windowevent-enter+ :enter)
+    (sdl2-ffi:+sdl-windowevent-leave+ :leave)
+    (sdl2-ffi:+sdl-windowevent-focus-gained+ :focus-gained)
+    (sdl2-ffi:+sdl-windowevent-focus-lost+ :focus-lost)
+    (sdl2-ffi:+sdl-windowevent-close+ :close)))
+
+(defun %mouse-val->sym (val)
+  (eswitch (val)
+    (sdl2-ffi:+sdl-button-left+
+     :mouse-button-left)
+    (sdl2-ffi:+sdl-button-right+
+     :mouse-button-right)
+    (sdl2-ffi:+sdl-button-middle+
+     :mouse-button-middle)
+    (sdl2-ffi:+sdl-button-x1+
+     :mouse-button-x1)
+    (sdl2-ffi:+sdl-button-x2+
+     :mouse-button-x2)))
+
+(defun %mouse-state ()
+  (cffi:with-foreign-objects ((x :int) (y :int))
+    (let ((state (sdl2-ffi.functions:sdl-get-mouse-state x y)))
+      (values state (cffi:mem-ref x :int) (cffi:mem-ref y :int)))))

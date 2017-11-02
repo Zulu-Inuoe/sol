@@ -27,9 +27,6 @@
    (#:media #:sol.media)
    (#:ui #:sol.ui))
   (:export
-   ;;;define-property
-   #:define-property
-
    ;;;event
    #:event
 
@@ -41,6 +38,8 @@
    ;;;dispose
    #:dispose
    #:with-disposeable
+   #:dispose-on-error
+   #:ensure-dispose
 
    ;;;disposable
    #:disposable
@@ -61,7 +60,7 @@
    #:app
    #:windows
    #:main-window
-   #:e_sdl-event
 
    #:app-init
+   #:app-add-window
    #:app-uninit))

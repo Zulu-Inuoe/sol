@@ -51,15 +51,18 @@
 (defun current-app ()
   *%current-app*)
 
-(defgeneric app-init (app)
-  (:method (app)
-    (declare (ignore app))
-    (values)))
+(defgeneric app-init (app))
+(defgeneric app-add-window (app window))
+(defgeneric app-uninit (app))
 
-(defgeneric app-uninit (app)
-  (:method (app)
-    (declare (ignore app))
-    (values)))
+(defmethod app-init ((app app))
+  (declare (ignore app))
+  (values))
+
+(defmethod app-add-window ((app app) window)
+  (push window (windows app))
+  (unless (main-window app)
+    (setf (main-window app) window)))
 
 (defmethod app-uninit ((app app))
   (when (main-window app)
@@ -76,12 +79,14 @@
     (error "app: app already running"))
   (drivers:ensure-active-driver)
   (dispatcher:do-invoke ((drivers:driver-dispatcher (drivers:active-driver)))
-    (let* ((app (make-instance app-class)))
+    (let ((app (make-instance app-class)))
+      (setf *%current-app* app)
       (app-init app)
-      (setf *%current-app* app)))
-  (when (dispatcher:check-access *%current-app*)
-    (dispatcher:run))
-
+      (unwind-protect
+           (dispatcher:run)
+        (when (eq *%current-app* app)
+          (%app.do-quit app))
+        (drivers:ensure-shutdown-driver))))
   (values))
 
 (defun app-quit (&aux (app (current-app)))
@@ -90,13 +95,9 @@
   (dispatcher:do-invoke ((dispatcher:dispatcher app))
     (%app.do-quit app))
 
+  (dispatcher:invoke-shutdown (dispatcher:dispatcher app))
   (drivers:ensure-shutdown-driver)
   (values))
-
-(defun %app.add-window (app window)
-  (push window (windows app))
-  (unless (main-window app)
-    (setf (main-window app) window)))
 
 (defun %app.do-quit (app)
   (app-uninit app)

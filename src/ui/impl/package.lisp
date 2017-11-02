@@ -23,11 +23,8 @@
   (:export
    #:impl
    #:impl-closed
-
-   #:current-window-impl-fn
-
-   #:window-impl-id
-   #:window-impl-left
-   #:window-impl-top
-   #:window-impl-width
-   #:window-impl-height))
+   #:impl-mouse-button
+   #:impl-mouse-move
+   #:impl-mouse-wheel
+   #:impl-key
+   #:impl-text-input))

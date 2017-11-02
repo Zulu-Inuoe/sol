@@ -21,9 +21,6 @@
 (defpackage #:sol.core
   (:use #:alexandria #:cl)
   (:export
-   ;;;define-property
-   #:define-property
-
    ;;;event
    #:event
 
@@ -35,6 +32,8 @@
    ;;;dispose
    #:dispose
    #:with-disposeable
+   #:dispose-on-error
+   #:ensure-dispose
 
    ;;;disposable
    #:disposeable
@@ -45,4 +44,17 @@
    #:define-finalizer
 
    ;;;finalizable
-   #:finalizable))
+   #:finalizable
+
+   ;;;app
+   #:current-app
+   #:app-start
+   #:app-quit
+
+   #:app
+   #:windows
+   #:main-window
+
+   #:app-init
+   #:app-add-window
+   #:app-uninit))

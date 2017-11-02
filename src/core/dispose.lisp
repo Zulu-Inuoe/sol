@@ -39,6 +39,45 @@ val is automatically disposed on exit from with-disposable."
           (progn ,@body)
        (dispose ,var))))
 
+(defmacro dispose-on-error (&body body)
+  "Executes each form in body as an implicit progn.
+If any form signals an error, the values of all previously evaluated forms are `dispose'd, in lifo order.
+Note, even if a `dispose' on a subsequent form fails, `dispose' will be called on all forms."
+  (labels ((recurse (forms)
+             (with-gensyms (success-p value-sym)
+                  `(let (,success-p ,value-sym)
+                     (unwind-protect
+                       ,(cond
+                          ((null (cdr forms))
+                           `(prog1 (setf ,value-sym ,(car forms))
+                              (setf ,success-p t)))
+                          (t
+                           `(progn
+                              (setf ,value-sym ,(car forms))
+                              (prog1 ,(recurse (cdr forms))
+                                (setf ,success-p t)))))
+                       (unless ,success-p
+                         (when ,value-sym
+                           (dispose ,value-sym))))))))
+    (if (null body)
+        '()
+        (recurse body))))
+
+(defmacro ensure-dispose (&body body)
+  "Disposes each form in body.
+Forms signalling an error will not prevent following forms from being disposed."
+  (labels ((recurse (forms)
+             (cond
+               ((null (cdr forms))
+                `(dispose ,(car forms)))
+               (t
+                `(unwind-protect
+                      (dispose ,(car forms))
+                   ,(recurse (cdr forms)))))))
+    (if (null body)
+        '()
+        (recurse body))))
+
 (defclass disposeable ()
   ((disposed
     :type boolean

@@ -41,7 +41,7 @@
      (setf path (pathname path))))
   (setf (slot-value image 'path) path)
 
-  (setf (slot-value image 'impl) (make-instance (drivers:image-impl) :image image)))
+  (setf (slot-value image 'impl) (make-instance (drivers:driver-image-impl (drivers:active-driver)) :image image)))
 
 (defmethod print-object ((image image) stream)
   (print-unreadable-object (image stream :type t)

@@ -46,7 +46,6 @@
     :components
     ((:file "event")
      (:file "dispose")
-     (:file "define-property")
      (:file "finalizer")))
 
    (:module "drivers"
@@ -62,7 +61,10 @@
       :components
       ((:file "dispatcher-impl")))
      (:file "dispatcher")
-     (:file "dispatcher-event")))
+     (:file "dispatcher-event")
+
+     (:file "simple-dispatcher")
+     (:file "current-dispatcher")))
 
    (:module "input"
     :serial t
@@ -133,8 +135,9 @@
     :serial t
     :components
     ((:file "package")
-     ;;dispatcher impl
-     (:file "sdl2-dispatcher-impl")
+     (:file "sdl2-event")
+     ;;dispatcher
+     (:file "sdl2-dispatcher")
 
      ;;font
      (:file "sdl2-font-context")

@@ -20,26 +20,8 @@
 
 (in-package #:sol.input)
 
-(defclass window-event-args ()
-  ((window-id
-    :initarg :window-id
-    :reader window-id)
-   (event-type
-    :type keyword
-    :initarg :event-type
-    :reader event-type)
-   (data1
-    :initarg :data1
-    :reader data1)
-   (data2
-    :initarg :data2
-    :reader data2)))
-
 (defclass text-input-event-args ()
-  ((window-id
-    :initarg :window-id
-    :reader window-id)
-   (text
+  ((text
     :type string
     :initform ""
     :initarg :text
@@ -51,10 +33,7 @@
     :reader device)))
 
 (defclass key/mouse-event-args (input-event-args)
-  ((window-id
-    :initarg :window-id
-    :reader window-id)
-   (alt
+  ((alt
     :type boolean
     :initform nil
     :initarg :alt

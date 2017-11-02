@@ -18,25 +18,9 @@
 ;;;
 ;;;3. This notice may not be removed or altered from any source distribution.
 
-(in-package #:sol.media)
+(in-package #:sol.dispatcher)
 
-(defun media-init ()
-  (when *%media-initialized*
-    (return-from media-init nil))
-
-  (setf *%image-context* (make-instance '%image-context))
-  (setf *%font-context* (make-instance '%font-context))
-  (setf *%media-initialized* t))
-
-(defun media-uninit ()
-  (unless *%media-initialized*
-    (return-from media-uninit t))
-
-  (%font-context-destroy *%font-context*)
-  (setf *%font-context* nil)
-
-  (%image-context-destroy *%image-context*)
-  (setf *%image-context* nil)
-  (setf *%media-initialized* nil))
-
-(defvar *%media-initialized* nil)
+(defun current-dispatcher ()
+  "Gets the `dispatcher' belonging to the current thread."
+  (or (from-thread (bordeaux-threads:current-thread))
+      (make-instance '%simple-dispatcher)))

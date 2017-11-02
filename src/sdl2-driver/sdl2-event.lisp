@@ -18,15 +18,7 @@
 ;;;
 ;;;3. This notice may not be removed or altered from any source distribution.
 
-(in-package #:sol.core)
+(in-package #:sol.sdl2-driver)
 
-(defmacro define-property (name)
-  (let ((value-sym (gensym "VALUE"))
-        (backing-sym (gensym (format nil "*~A*" (symbol-name name)))))
-    `(progn
-       (defvar ,backing-sym nil)
-       (defun ,name ()
-         ,backing-sym)
-       (defun (setf ,name) (,value-sym)
-         (setf ,backing-sym ,value-sym))
-       ',name)))
+(defvar *e_sdl2-event* (make-instance 'event :name "sdl2-event")
+  "Raised when there's a new SDL2 event to process.")

@@ -20,15 +20,6 @@
 
 (in-package #:sol.dispatcher.impl)
 
-(defvar *%current-dispatcher-impl-fn* nil)
-
-(defun current-dispatcher-impl-fn ()
-  "The dispatcher implementation."
-  *%current-dispatcher-impl-fn*)
-
-(defun (setf current-dispatcher-impl-fn) (new-value)
-  (setf *%current-dispatcher-impl-fn* new-value))
-
 (defgeneric wait-invoke-signal (dispatcher-impl)
   (:documentation "Requests the dispatcher-impl to wait until an invoke request is available."))
 

@@ -20,27 +20,16 @@
 
 (in-package #:sol.sdl2-driver)
 
-(defclass sdl2-driver (finalizable)
-  ((window-callback
-    :initarg :window-callback
-    :initform nil
-    :reader window-callback)
-   (dispatcher
+(defclass sdl2-driver (disposeable)
+  ((dispatcher
     :type dispatcher:dispatcher
     :reader dispatcher)
-   (input-manager
-    :type sdl2-input-manager
-    :reader input-manager)
    (font-context
     :type sdl2-font-context
     :reader font-context)
    (image-context
     :type sdl2-image-context
-    :reader image-context)
-   (windows
-    :type cons
-    :initform (cons nil nil)
-    :reader windows)))
+    :reader image-context)))
 
 (defmethod initialize-instance :after ((driver sdl2-driver) &key &allow-other-keys)
   (sdl2-ffi.functions:sdl-init (autowrap:mask-apply 'sdl2::sdl-init-flags (list :everything)))
@@ -48,65 +37,44 @@
   (sdl2-image:init (list :png :jpg :tif))
   (sdl2-ttf:init)
 
-  (setf (dispatcher.impl:current-dispatcher-impl-fn)
-        (lambda (d)
-          (make-instance 'sdl2-dispatcher-impl :dispatcher d)))
-  (setf (ui.impl:current-window-impl-fn)
-        (lambda (ui-window
-            &key
-              title
-              x y
-              width height
-              state border-style
-              fullscreen visible)
-          (push (trivial-garbage:make-weak-pointer ui-window) (car (windows driver)))
-          (when (window-callback driver)
-            (funcall (window-callback driver) ui-window))
-          (make-instance
-           'sdl2-window-impl
-           :ui-window ui-window
-           :title title
-           :x x :y y
-           :width width :height height
-           :state state :border-style border-style
-           :fullscreen fullscreen :visible visible)))
+  (let (success)
+    (unwind-protect
+         (progn
+           (dispose-on-error
+             (setf (slot-value driver 'dispatcher) (make-instance 'sdl2-dispatcher))
+             (setf (slot-value driver 'font-context) (make-instance 'sdl2-font-context))
+             (setf (slot-value driver 'image-context) (make-instance 'sdl2-image-context)))
+           (setf success t))
+      (unless success
+        (sdl2-ttf:quit)
+        (sdl2-image:quit)
+        (sdl2-ffi.functions:sdl-quit)))))
 
-  (setf (image-impl) 'sdl2-image-impl)
-  (setf (font-impl) 'sdl2-font-impl)
-  (setf (text-impl) 'sdl2-text-impl)
+(defmethod dispose ((driver sdl2-driver))
+  (unwind-protect
+       (ensure-dispose
+         (image-context driver)
+         (font-context driver)
+         (dispatcher driver))
 
-  (setf (slot-value driver 'dispatcher) (dispatcher:current-dispatcher))
-  (setf (slot-value driver 'input-manager)
-        (make-instance 'sdl2-input-manager
-                       :e_sdl-event (e_sdl-event (dispatcher.impl:impl (dispatcher driver)))))
-  (setf (slot-value driver 'font-context) (make-instance 'sdl2-font-context))
-  (setf (slot-value driver 'image-context) (make-instance 'sdl2-image-context)))
-
-(define-finalizer sdl2-driver (dispatcher input-manager font-context image-context windows)
-  (loop
-     :for wptr :in (car windows)
-     :for w := (trivial-garbage:weak-pointer-value wptr)
-     :if w
-     :do (dispose w))
-  (setf (car windows) nil)
-
-  (dispose image-context)
-  (dispose font-context)
-  (dispose input-manager)
-  (dispose dispatcher)
-
-  (setf (text-impl) nil)
-  (setf (font-impl) nil)
-  (setf (image-impl) nil)
-
-  (setf (ui.impl:current-window-impl-fn) nil)
-  (setf (dispatcher.impl:current-dispatcher-impl-fn) nil)
-
-  (sdl2-ttf:quit)
-  (sdl2-image:quit)
-  (sdl2-ffi.functions:sdl-quit))
+    (sdl2-ttf:quit)
+    (sdl2-image:quit)
+    (sdl2-ffi.functions:sdl-quit)
+    (call-next-method)))
 
 (defmethod driver-dispatcher ((driver sdl2-driver))
   (dispatcher driver))
+
+(defmethod driver-window-impl ((driver sdl2-driver))
+  'sdl2-window-impl)
+
+(defmethod driver-font-impl ((driver sdl2-driver))
+  'sdl2-font-impl)
+
+(defmethod driver-text-impl ((driver sdl2-driver))
+  'sdl2-text-impl)
+
+(defmethod driver-image-impl ((driver sdl2-driver))
+  'sdl2-image-impl)
 
 (define-driver sdl2-driver)

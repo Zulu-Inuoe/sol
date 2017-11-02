@@ -33,6 +33,10 @@
      (setf (driver-class) ',name)))
 
 (defgeneric driver-dispatcher (driver))
+(defgeneric driver-window-impl (driver))
+(defgeneric driver-font-impl (driver))
+(defgeneric driver-text-impl (driver))
+(defgeneric driver-image-impl (driver))
 
 (defvar *%active-driver* nil)
 
@@ -54,21 +58,28 @@
     (dispose (active-driver))
     (setf *%active-driver* nil)))
 
-;;;Font
-(define-property font-impl)
+;;;Window
+(defgeneric window-left (window-impl))
+(defgeneric (setf window-left) (value window-impl))
 
+(defgeneric window-top (window-impl))
+(defgeneric (setf window-top) (value window-impl))
+
+(defgeneric window-width (window-impl))
+(defgeneric (setf window-width) (value window-impl))
+
+(defgeneric window-height (window-impl))
+(defgeneric (setf window-height) (value window-impl))
+
+;;;Font
 (defgeneric font-height (font-impl))
 (defgeneric font-size-text (font-impl text))
 
 ;;;Text
-(define-property text-impl)
-
 (defgeneric text-width (text-impl))
 (defgeneric text-height (text-impl))
 (defgeneric text-set-dirty (text-impl))
 
 ;;;image
-(define-property image-impl)
-
 (defgeneric image-width (image-impl))
 (defgeneric image-height (image-impl))

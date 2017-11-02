@@ -20,16 +20,6 @@
 
 (in-package #:sol.ui.impl)
 
-(defvar *%current-window-impl-fn*)
-
-(defun current-window-impl-fn ()
-  "The window implementation."
-  *%current-window-impl-fn*)
-
-(defun (setf current-window-impl-fn) (new-value)
-  (setf *%current-window-impl-fn* new-value))
-
-(defgeneric window-id (impl))
 
 (defgeneric window-left (impl))
 (defgeneric (setf window-left) (value impl))

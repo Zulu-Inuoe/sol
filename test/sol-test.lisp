@@ -5,7 +5,9 @@
     (uiop:with-current-directory ((uiop:pathname-directory-pathname (or *load-truename* *compile-file-truename*)))
       (pushnew (truename "../") ql:*local-project-directories*))
     (ql:register-local-projects)
-    (ql:quickload :sol)))
+    (ql:quickload :sol)
+    (asdf:compile-system :sol)
+    (asdf:load-system :sol)))
 
 (defpackage #:sol-test
   (:use #:cl #:sol)
@@ -18,15 +20,14 @@
   ())
 
 (defmethod app-init ((app test-app))
-  (setf (main-window app)
-        (make-instance
-         'ui:window
-         :left 2300
-         :height 350 :width 525
-         :content
-         (make-instance
-          'ui:button
-          :content "hello, world!"))))
+  (make-instance
+   'ui:window
+   :left 2300
+   :height 350 :width 525
+   :content
+   (make-instance
+    'ui:button
+    :content "hello, world!")))
 
 (defun run-test ()
   (app-start 'test-app))

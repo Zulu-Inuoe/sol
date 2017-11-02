@@ -25,20 +25,31 @@
    #:define-driver
 
    #:driver-dispatcher
+   #:driver-window-impl
+   #:driver-font-impl
+   #:driver-text-impl
+   #:driver-image-impl
 
    #:active-driver
    #:ensure-active-driver
    #:ensure-shutdown-driver
 
-   #:font-impl
+   ;;window-impl
+   #:window-id
+   #:window-left
+   #:window-top
+   #:window-width
+   #:window-height
+
+   ;;font-impl
    #:font-height
    #:font-size-text
 
-   #:text-impl
+   ;;text-impl
    #:text-width
    #:text-height
    #:text-set-dirty
 
-   #:image-impl
+   ;;image-impl
    #:image-width
    #:image-height))

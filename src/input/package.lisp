@@ -22,7 +22,6 @@
   (:use #:alexandria #:cl #:sol.core)
   (:export
    #:input-manager
-   #:e_window-event
    #:e_mouse-move
    #:e_mouse-button
    #:e_mouse-wheel
@@ -38,21 +37,13 @@
    #:release-mouse
    #:mouse-position
 
-   #:window-event-args
-   #:window-id
-   #:event-type
-   #:data1
-   #:data2
-
    #:text-input-event-args
-   #:window-id
    #:text
 
    #:input-event-args
    #:device
 
    #:key/mouse-event-args
-   #:window-id
    #:modifiers
 
    #:alt-down
