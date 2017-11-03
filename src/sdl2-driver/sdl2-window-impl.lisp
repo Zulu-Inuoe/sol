@@ -115,55 +115,62 @@
                                          (fullscreen nil)
                                          (visible t)
                                          &allow-other-keys)
-    (let* ((sdl-window
-            (sdl2-ffi.functions:sdl-create-window
-             title
-             (or (and x (round x)) sdl2-ffi:+sdl-windowpos-undefined+)
-             (or (and y (round y)) sdl2-ffi:+sdl-windowpos-undefined+)
-             (or (and width (round width)) 800)
-             (or (and height (round height)) 600)
-             (logior
-              (if visible sdl2-ffi:+sdl-window-shown+ sdl2-ffi:+sdl-window-hidden+)
-              sdl2-ffi:+sdl-window-resizable+
-              sdl2-ffi:+sdl-window-opengl+
-              (ecase state
-                ((nil :normal) 0)
-                (:minimized sdl2-ffi:+sdl-window-minimized+)
-                (:maximized sdl2-ffi:+sdl-window-maximized+))
-              (ecase border-style
-                ((nil :normal) 0)
-                (:borderless sdl2-ffi:+sdl-window-borderless+))
-              (if fullscreen
-                  sdl2-ffi:+sdl-window-fullscreen+
-                  0))))
-           (renderer (sdl-create-renderer impl sdl-window)))
+  ;;Normalize some values
+  (setf x (or (and x (round x)) sdl2-ffi:+sdl-windowpos-undefined+))
+  (setf y (or (and y (round y)) sdl2-ffi:+sdl-windowpos-undefined+))
+  (setf width (or (and width (round width)) 800))
+  (setf height (or (and height (round height)) 600))
 
-      (cffi:with-foreign-objects ((x :int) (y :int))
-        (sdl2-ffi.functions:sdl-get-window-position sdl-window x y)
-        (setf (sdl-window-l impl) (cffi:mem-ref x :int)
-              (sdl-window-t impl) (cffi:mem-ref y :int)))
+  #+win32
+  (progn
+    (unless (= x sdl2-ffi:+sdl-windowpos-undefined+)
+      (incf x (win32:get-system-metrics win32:+sm-cxsizeframe+)))
+    (unless (= y sdl2-ffi:+sdl-windowpos-undefined+)
+      (incf y (+ (win32:get-system-metrics win32:+sm-cycaption+)
+                 (win32:get-system-metrics win32:+sm-cysizeframe+))))
+    (decf width (* 2 (win32:get-system-metrics win32:+sm-cxsizeframe+)))
+    (decf height (+ (win32:get-system-metrics win32:+sm-cycaption+)
+                    (* 2 (win32:get-system-metrics win32:+sm-cysizeframe+)))))
+  (let* ((sdl-window
+          (sdl2-ffi.functions:sdl-create-window
+           title
+           x y
+           width height
+           (logior
+            (if visible sdl2-ffi:+sdl-window-shown+ sdl2-ffi:+sdl-window-hidden+)
+            sdl2-ffi:+sdl-window-resizable+
+            sdl2-ffi:+sdl-window-opengl+
+            (ecase state
+              ((nil :normal) 0)
+              (:minimized sdl2-ffi:+sdl-window-minimized+)
+              (:maximized sdl2-ffi:+sdl-window-maximized+))
+            (ecase border-style
+              ((nil :normal) 0)
+              (:borderless sdl2-ffi:+sdl-window-borderless+))
+            (if fullscreen
+                sdl2-ffi:+sdl-window-fullscreen+
+                0))))
+         (renderer (sdl-create-renderer impl sdl-window)))
 
-      (cffi:with-foreign-objects ((width :int) (height :int))
-        (sdl2-ffi.functions:sdl-gl-get-drawable-size sdl-window width height)
-        (setf (sdl-window-w impl) (cffi:mem-ref width :int)
-              (sdl-window-h impl) (cffi:mem-ref height :int)))
+    (setf (slot-value impl 'sdl-window) sdl-window
+          (slot-value impl 'renderer) renderer)
 
-      (setf (slot-value impl 'sdl-window) sdl-window
-            (slot-value impl 'renderer) renderer)
+    (%sdl2-window-impl.refresh-pos impl)
+    (%sdl2-window-impl.refresh-size impl)
 
-      #+(and win32 swank)
-      (progn
-        (when (and visible *%sdl-window-first-window*)
-          (sdl2:hide-window sdl-window)
-          (sdl2:show-window sdl-window)
-          (sdl2:hide-window sdl-window)
-          (sdl2:show-window sdl-window))
-        (setf *%sdl-window-first-window* nil)))
+    #+(and win32 swank)
+    (progn
+      (when (and visible *%sdl-window-first-window*)
+        (sdl2:hide-window sdl-window)
+        (sdl2:show-window sdl-window)
+        (sdl2:hide-window sdl-window)
+        (sdl2:show-window sdl-window))
+      (setf *%sdl-window-first-window* nil)))
 
-    (event-subscribe
-     *e_sdl2-event*
-     impl
-     '%sdl2-window-impl.sdl2-event))
+  (event-subscribe
+   *e_sdl2-event*
+   impl
+   '%sdl2-window-impl.sdl2-event))
 
 (defmethod window-close ((impl sdl2-window-impl))
   (event-unsubscribe
@@ -201,37 +208,58 @@
   value)
 
 (defmethod window-width ((impl sdl2-window-impl))
-  (sdl-window-w impl))
+  #-win32
+  (sdl-window-w impl)
+  #+win32
+  (+ (sdl-window-w impl)
+     (* 2 (win32:get-system-metrics win32:+sm-cxsizeframe+))))
 
 (defmethod (setf window-width) (value (impl sdl2-window-impl))
   (setf value (round value))
-  (unless (= value (sdl-window-w impl))
+  (unless (= value (window-width impl))
+    #+win32
+    (decf value (* 2 (win32:get-system-metrics win32:+sm-cxsizeframe+)))
+
     (sdl2-ffi.functions:sdl-set-window-size
      (sdl-window impl)
      value
      (sdl-window-h impl))
     (%sdl2-window-impl.refresh-size impl))
-  (sdl-window-h impl))
+  (window-width impl))
 
 (defmethod window-height ((impl sdl2-window-impl))
-  (sdl-window-h impl))
+  #-win32
+  (sdl-window-h impl)
+  #+win32
+  (+ (sdl-window-h impl)
+     (win32:get-system-metrics win32:+sm-cycaption+)
+     (* 2 (win32:get-system-metrics win32:+sm-cysizeframe+))))
 
 (defmethod (setf window-height) (value (impl sdl2-window-impl))
   (setf value (round value))
-  (unless (= value (sdl-window-h impl))
+  (unless (= value (window-height impl))
+    #+win32
+    (decf value (+ (win32:get-system-metrics win32:+sm-cycaption+)
+                   (* 2 (win32:get-system-metrics win32:+sm-cysizeframe+))))
     (sdl2-ffi.functions:sdl-set-window-size
      (sdl-window impl)
      (sdl-window-w impl)
      value)
     (%sdl2-window-impl.refresh-size impl))
+  (window-height impl))
+
+(defmethod window-draw-width ((impl sdl2-window-impl))
+  (sdl-window-w impl))
+
+(defmethod window-draw-height ((impl sdl2-window-impl))
   (sdl-window-h impl))
 
 (defun %sdl2-window-impl.refresh-pos (impl
                                        &aux (sdl-window (sdl-window impl)))
   (cffi:with-foreign-objects ((x :int) (y :int))
-        (sdl2-ffi.functions:sdl-get-window-position sdl-window x y)
-        (setf (sdl-window-l impl) (cffi:mem-ref x :int)
-              (sdl-window-t impl) (cffi:mem-ref y :int)))
+     (sdl2-ffi.functions:sdl-get-window-position sdl-window x y)
+     (setf (sdl-window-l impl) (cffi:mem-ref x :int)
+           (sdl-window-t impl) (cffi:mem-ref y :int)))
   (values))
 
 (defun %sdl2-window-impl.refresh-size (impl

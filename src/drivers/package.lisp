@@ -40,6 +40,8 @@
    #:window-top
    #:window-width
    #:window-height
+   #:window-draw-width
+   #:window-draw-height
 
    ;;font-impl
    #:font-height

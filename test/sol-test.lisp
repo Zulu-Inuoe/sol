@@ -12,6 +12,7 @@
 (defpackage #:sol-test
   (:use #:cl #:sol)
   (:local-nicknames
+   (#:drivers #:sol.drivers)
    (#:ui #:sol.ui)))
 
 (in-package #:sol-test)
@@ -23,12 +24,13 @@
   (make-instance
    'ui:window
    :left 2300 :top 300
-   :height 350 :width 525
+   :width 525 :height 350
    :content
    (make-instance
     'ui:button
     :content "Hello, world!")))
 
 (defun run-test ()
+  (setf (drivers:driver-class) 'sol.sdl2-driver::sdl2-gpu-driver)
   (app-start 'test-app))
 

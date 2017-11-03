@@ -73,6 +73,9 @@
 (defgeneric window-height (window-impl))
 (defgeneric (setf window-height) (value window-impl))
 
+(defgeneric window-draw-width (window-impl))
+(defgeneric window-draw-height (window-impl))
+
 ;;;Font
 (defgeneric font-height (font-impl))
 (defgeneric font-size-text (font-impl text))

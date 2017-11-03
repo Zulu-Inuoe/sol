@@ -107,22 +107,22 @@
          :fullscreen fullscreen
          :visible visible))
 
-  (setf (width comp) (drivers:window-width (impl comp))
-        (height comp) (drivers:window-height (impl comp))))
+  (setf (slot-value comp 'width) (drivers:window-width (impl comp))
+        (slot-value comp 'height) (drivers:window-height (impl comp))))
 
-(defmethod initialize-instance :around ((comp window) &key &ellow-other-keys)
+(defmethod initialize-instance :around ((comp window) &key &allow-other-keys)
   (call-next-method)
   (when (current-app)
     (sol.impl:app-add-window (current-app) comp)))
 
 (defmethod (setf width) (val (comp window))
-  (unless (= val (width comp))
+  (unless (or (null val) (= val (width comp)))
     (setf (drivers:window-width (impl comp)) val)
     (call-next-method (drivers:window-width (impl comp)) comp))
   (width comp))
 
 (defmethod (setf height) (val (comp window))
-  (unless (= val (height comp))
+  (unless (or (null val) (= val (height comp)))
     (setf (drivers::window-height (impl comp)) val)
     (call-next-method (drivers:window-height (impl comp)) comp))
   (height comp))
@@ -160,8 +160,8 @@
   (let (min-w max-w min-h max-h)
     (setf min-w (or (min-width comp) 0))
     (setf min-h (or (min-height comp) 0))
-    (setf max-w (or (max-width comp) (width comp)))
-    (setf max-h (or (max-height comp) (height comp)))
+    (setf max-w (or (max-width comp) (drivers:window-draw-width (impl comp))))
+    (setf max-h (or (max-height comp) (drivers:window-draw-height (impl comp))))
     (values min-w max-w min-h max-h)))
 
 (defun impl:impl (window)
@@ -218,6 +218,7 @@
       :args args))))
 
 (defun impl:impl-key (window args)
+  (declare (ignore window))
   (when-let ((target (focused-component (active-focus-manager))))
     (raise-event
      target
@@ -230,6 +231,7 @@
       :args args))))
 
 (defun impl:impl-text-input (window args)
+  (declare (ignore window))
   (when-let ((target (focused-component (active-focus-manager))))
     (raise-event
      target
