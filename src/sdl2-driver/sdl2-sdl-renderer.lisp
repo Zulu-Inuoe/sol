@@ -24,7 +24,7 @@
   ((%renderer-native
     :type sdl2-ffi:sdl-renderer
     :initarg :native
-    :initform (error "renderer: must supply renderer")
+    :initform (error "sdl-renderer: must supply renderer")
     :reader %renderer-native)
    (%transforms
     :type list
@@ -46,20 +46,33 @@
     :initform ()
     :accessor %sdl-render-anon-texture-cache)))
 
-(defmethod initialize-instance :after ((renderer sdl2-sdl-renderer)
-                                       &key
-                                         &allow-other-keys))
+(defmethod initialize-instance :after ((renderer sdl2-sdl-renderer) &key &allow-other-keys))
 
-(defmethod renderer-size ((renderer sdl2-sdl-renderer))
+(defmethod dispose ((renderer sdl2-sdl-renderer))
+  (maphash
+   (lambda (k v)
+     (format t "sdl-renderer: destroying texture ~a~%" k)
+     (sdl2-ffi.functions:sdl-destroy-texture v))
+   (%sdl-render-texture-cache renderer))
+  (clrhash (%sdl-render-texture-cache renderer))
+
+  (mapc
+   (lambda (v)
+     (format t "sdl-renderer: destroying anon texture: ~a~%" v)
+     (sdl2-ffi.functions:sdl-destroy-texture v))
+   (%sdl-render-anon-texture-cache renderer))
+  (setf (%sdl-render-anon-texture-cache renderer) ())
+
+  (clrhash (%sdl-render-text-cache renderer))
+
+
+  (sdl2:destroy-renderer (%renderer-native renderer))
+  (slot-makunbound renderer '%renderer-native))
+
+(defmethod media:renderer-size ((renderer sdl2-sdl-renderer))
   (cffi:with-foreign-objects ((w :int) (h :int))
     (sdl2-ffi.functions:sdl-get-renderer-output-size (%renderer-native renderer) w h)
     (values (cffi:mem-ref w :int) (cffi:mem-ref h :int))))
-
-(defmethod renderer-width ((renderer sdl2-sdl-renderer))
-  (values (renderer-size renderer)))
-
-(defmethod renderer-height ((renderer sdl2-sdl-renderer))
-  (nth-value 1 (renderer-size renderer)))
 
 (defmacro with-transformed-points (renderer (&rest bind-pairs) &body body)
   (if bind-pairs
@@ -84,31 +97,11 @@
          ,renderer
          ,@body)))
 
-(defmethod render-destroy ((renderer sdl2-sdl-renderer))
-  (unless (slot-boundp renderer '%renderer-native)
-    (error "renderer: renderer already destroyed ~A" renderer))
-  (maphash
-   (lambda (k v)
-     (declare (ignore k))
-     ;; (format t "renderer: destroying texture ~A~%" k)
-     (sdl2-ffi.functions:sdl-destroy-texture v))
-   (%sdl-render-texture-cache renderer))
-  (mapc
-   (lambda (v)
-     (format t "renderer: destroying anon texture: ~A~%" v)
-     (sdl2-ffi.functions:sdl-destroy-texture v))
-   (%sdl-render-anon-texture-cache renderer))
-  (sdl2:destroy-renderer (%renderer-native renderer))
-  (slot-makunbound renderer '%renderer-native)
-  (setf (%sdl-render-anon-texture-cache renderer) ())
-  (clrhash (%sdl-render-texture-cache renderer))
-  (clrhash (%sdl-render-text-cache renderer)))
-
-(defmethod render-clear ((renderer sdl2-sdl-renderer)
-                         &key
-                           (color media.colors:*transparent*)
-                         &aux
-                           (sdl-renderer (%renderer-native renderer)))
+(defmethod media:render-clear ((renderer sdl2-sdl-renderer)
+                               &key
+                                 (color media.colors:*transparent*)
+                               &aux
+                                 (sdl-renderer (%renderer-native renderer)))
   (cffi:with-foreign-objects ((r :uint8) (g :uint8) (b :uint8) (a :uint8))
     (sdl2-ffi.functions:sdl-get-render-draw-color sdl-renderer r g b a)
     (sdl2-ffi.functions:sdl-set-render-draw-color
@@ -122,24 +115,24 @@
      (cffi:mem-ref b :uint8)
      (cffi:mem-ref a :uint8))))
 
-(defmethod render-present ((renderer sdl2-sdl-renderer))
+(defmethod media:render-present ((renderer sdl2-sdl-renderer))
   (sdl2-ffi.functions:sdl-render-present (%renderer-native renderer)))
 
-(defmethod render-pop ((renderer sdl2-sdl-renderer))
+(defmethod media:render-pop ((renderer sdl2-sdl-renderer))
   (pop (%transforms renderer))
   (values))
 
-(defmethod render-push-translate ((renderer sdl2-sdl-renderer) x y)
+(defmethod media:render-push-translate ((renderer sdl2-sdl-renderer) x y)
   (push
    (lambda (px py)
      (values (+ px x) (+ py y)))
    (%transforms renderer))
   (values))
 
-(defmethod render-push-rotate ((renderer sdl2-sdl-renderer) angle &key (x 0) (y 0)
-                               &aux
-                                 (cos (cos angle))
-                                 (sin (sin angle)))
+(defmethod media:render-push-rotate ((renderer sdl2-sdl-renderer) angle &key (x 0) (y 0)
+                                     &aux
+                                       (cos (cos angle))
+                                       (sin (sin angle)))
   (push
    (lambda (px py)
      (values (* (- px x) cos)
@@ -147,7 +140,7 @@
    (%transforms renderer))
   (values))
 
-(defmethod render-push-scale ((renderer sdl2-sdl-renderer) scale-x scale-y)
+(defmethod media:render-push-scale ((renderer sdl2-sdl-renderer) scale-x scale-y)
   (push
    (lambda (px py)
      (values (* px scale-x)
@@ -155,20 +148,20 @@
    (%transforms renderer))
   (values))
 
-(defmethod render-draw-point ((renderer sdl2-sdl-renderer) x y
-                              &key
-                                (color media.colors:*black*)
-                              &aux
-                                (sdl-renderer (%renderer-native renderer)))
+(defmethod media:render-draw-point ((renderer sdl2-sdl-renderer) x y
+                                    &key
+                                      (color media.colors:*black*)
+                                    &aux
+                                      (sdl-renderer (%renderer-native renderer)))
   (with-transformed-points renderer
       ((x y))
     (sdl2-ffi.functions:pixel-color sdl-renderer x y (media:pack-color color))))
 
-(defmethod render-draw-line ((renderer sdl2-sdl-renderer) x1 y1 x2 y2
-                             &key
-                               (color media.colors:*black*)
-                               (thickness 1)
-                             &aux (sdl-renderer (%renderer-native renderer)))
+(defmethod media:render-draw-line ((renderer sdl2-sdl-renderer) x1 y1 x2 y2
+                                   &key
+                                     (color media.colors:*black*)
+                                     (thickness 1)
+                                   &aux (sdl-renderer (%renderer-native renderer)))
   (setf thickness (round thickness))
   (with-transformed-points renderer
       ((x1 y1)
@@ -190,22 +183,22 @@
          sdl-renderer
          x1 y1 x2 y2 thickness (media:pack-color color)))))
 
-(defmethod render-draw-rect ((renderer sdl2-sdl-renderer) x y width height
-                             &key
-                               (fill nil)
-                               (stroke nil)
-                               (stroke-thickness 1)
-                             &aux
-                               (sdl-renderer (%renderer-native renderer))
-                               (stroke-thickness (if stroke stroke-thickness 0))
-                               (stroke-x1 x)
-                               (stroke-y1 y)
-                               (stroke-x2 (+ stroke-x1 (1- width)))
-                               (stroke-y2 (+ stroke-y1 (1- height)))
-                               (fill-x1 (+ stroke-x1 stroke-thickness))
-                               (fill-y1 (+ stroke-y1 stroke-thickness))
-                               (fill-x2 (- stroke-x2 stroke-thickness))
-                               (fill-y2 (- stroke-y2 stroke-thickness)))
+(defmethod media:render-draw-rect ((renderer sdl2-sdl-renderer) x y width height
+                                   &key
+                                     (fill nil)
+                                     (stroke nil)
+                                     (stroke-thickness 1)
+                                   &aux
+                                     (sdl-renderer (%renderer-native renderer))
+                                     (stroke-thickness (if stroke stroke-thickness 0))
+                                     (stroke-x1 x)
+                                     (stroke-y1 y)
+                                     (stroke-x2 (+ stroke-x1 (1- width)))
+                                     (stroke-y2 (+ stroke-y1 (1- height)))
+                                     (fill-x1 (+ stroke-x1 stroke-thickness))
+                                     (fill-y1 (+ stroke-y1 stroke-thickness))
+                                     (fill-x2 (- stroke-x2 stroke-thickness))
+                                     (fill-y2 (- stroke-y2 stroke-thickness)))
   (setf stroke-thickness (round stroke-thickness))
   (with-transformed-points renderer
       ((fill-x1 fill-y1)
@@ -222,18 +215,18 @@
        fill-x1 fill-y1 fill-x2 fill-y2 (media:pack-color fill)))))
 
 
-(defmethod render-draw-ellipse ((renderer sdl2-sdl-renderer) x y rx ry
-                                &key
-                                  (fill nil)
-                                  (stroke nil)
-                                  (stroke-thickness 1)
-                                &aux
-                                  (sdl-renderer (%renderer-native renderer))
-                                  (stroke-thickness (if stroke stroke-thickness 0))
-                                  (stroke-rx (round rx))
-                                  (stroke-ry (round ry))
-                                  (fill-rx (round (- rx stroke-thickness)))
-                                  (fill-ry (round (- ry stroke-thickness))))
+(defmethod media:render-draw-ellipse ((renderer sdl2-sdl-renderer) x y rx ry
+                                      &key
+                                        (fill nil)
+                                        (stroke nil)
+                                        (stroke-thickness 1)
+                                      &aux
+                                        (sdl-renderer (%renderer-native renderer))
+                                        (stroke-thickness (if stroke stroke-thickness 0))
+                                        (stroke-rx (round rx))
+                                        (stroke-ry (round ry))
+                                        (fill-rx (round (- rx stroke-thickness)))
+                                        (fill-ry (round (- ry stroke-thickness))))
   (setf stroke-thickness (round stroke-thickness))
   (with-transformed-points renderer
       ((x y))
@@ -246,13 +239,13 @@
        sdl-renderer
        x y fill-rx fill-ry (media:pack-color fill)))))
 
-(defmethod render-draw-image ((renderer sdl2-sdl-renderer) image x y
-                              &key
-                                (width (image-width image))
-                                (height (image-height image))
-                                (flip nil))
+(defmethod media:render-draw-image ((renderer sdl2-sdl-renderer) image x y
+                                    &key
+                                      (width (image-width image))
+                                      (height (image-height image))
+                                      (flip nil))
   (when (null (sdl-surface (media:image-impl image)))
-    (return-from render-draw-image))
+    (return-from media:render-draw-image))
 
   (let ((texture (%sdl-render-cache-surface-texture renderer (sdl-surface (media:image-impl image))))
         (src-x (slot-value image '%src-x))
@@ -278,36 +271,36 @@
            (:both (logior sdl2-ffi:+sdl-flip-horizontal+ sdl2-ffi:+sdl-flip-vertical+))
            (t sdl2-ffi:+sdl-flip-none+)))))))
 
-(defmethod render-draw-text ((renderer sdl2-sdl-renderer) text x y)
+(defmethod media:render-draw-text ((renderer sdl2-sdl-renderer) text x y)
   (when (null (sdl-surface (media:text-impl text)))
-    (return-from render-draw-text))
+    (return-from media:render-draw-text))
 
   (let ((texture (%sdl-render-cache-text renderer text)))
     (with-transformed-points renderer
         ((x y))
       (sdl2:with-rects ((dst x y
-                             (text-width text)
-                             (text-height text)))
+                             (media:text-width text)
+                             (media:text-height text)))
         (sdl2-ffi.functions:sdl-render-copy
          (%renderer-native renderer)
          texture
          (cffi:null-pointer)
          dst)))))
 
-(defmethod render-get-target ((renderer sdl2-sdl-renderer))
+(defmethod media:render-get-target ((renderer sdl2-sdl-renderer))
   (cons renderer (sdl2-ffi.functions:sdl-get-render-target (%renderer-native renderer))))
 
-(defmethod render-set-target ((renderer sdl2-sdl-renderer) target
-                              &aux
-                                (target-renderer (car target))
-                                (target-texture (cdr target)))
+(defmethod media:render-set-target ((renderer sdl2-sdl-renderer) target
+                                    &aux
+                                      (target-renderer (car target))
+                                      (target-texture (cdr target)))
   (unless (eq renderer target-renderer)
-    (error "renderer: invalid render target for renderer '~A'" target))
+    (error "sdl-renderer: invalid render target for renderer '~A'" target))
 
   (sdl2-ffi.functions:sdl-set-render-target (%renderer-native renderer) target-texture)
   (values))
 
-(defmethod render-create-target ((renderer sdl2-sdl-renderer) width height &key (opacity 1))
+(defmethod media:render-create-target ((renderer sdl2-sdl-renderer) width height &key (opacity 1))
   (let ((texture (sdl2-ffi.functions:sdl-create-texture
                   (%renderer-native renderer)
                   sdl2-ffi:+sdl-pixelformat-argb8888+
@@ -320,12 +313,12 @@
       (push target (%sdl-render-anon-texture-cache renderer))
       target)))
 
-(defmethod render-draw-target ((renderer sdl2-sdl-renderer) target x y
-                               &aux
-                                 (target-renderer (car target))
-                                 (target-texture (cdr target)))
+(defmethod media:render-draw-target ((renderer sdl2-sdl-renderer) target x y
+                                     &aux
+                                       (target-renderer (car target))
+                                       (target-texture (cdr target)))
   (unless (eq renderer target-renderer)
-    (error "renderer: invalid render target for renderer '~A'" target))
+    (error "sdl-renderer: invalid render target for renderer '~A'" target))
 
   (with-transformed-points renderer
       ((x y))
@@ -337,10 +330,10 @@
          target-texture
          (cffi:null-pointer) dst)))))
 
-(defmethod render-destroy-target ((renderer sdl2-sdl-renderer) target
-                                  &aux
-                                    (target-renderer (car target))
-                                    (target-texture (cdr target)))
+(defmethod media:render-destroy-target ((renderer sdl2-sdl-renderer) target
+                                        &aux
+                                          (target-renderer (car target))
+                                          (target-texture (cdr target)))
   (when target-texture
     (setf (%sdl-render-anon-texture-cache target-renderer)
           (delete target-texture (%sdl-render-anon-texture-cache target-renderer)))
@@ -373,7 +366,7 @@
                                               (key surface))
   (let ((texture (gethash key map)))
     (unless texture
-      (error "renderer: attempting to uncache unknown texture '~A'" key))
+      (error "sdl-renderer: attempting to uncache unknown texture '~A'" key))
     (sdl2-ffi.functions:sdl-destroy-texture texture)
     (remhash key map))
   (values))

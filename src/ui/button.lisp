@@ -42,7 +42,7 @@
     :initarg :hover-color
     :accessor hover-color)
    (click-mode
-    :type symbol
+    :type keyword
     :initarg :click-mode
     :accessor click-mode)
    (e_click

@@ -75,12 +75,11 @@
 
         (setf (%closed comp) t)
 
-        (unwind-protect
-             (dispose (impl comp))
-          (slot-makunbound comp 'impl)
-          (event-notify
-           (e_window-closed comp)
-           comp))))
+        (drivers:window-close (impl comp))
+
+        (event-notify
+         (e_window-closed comp)
+         comp)))
     (values)))
 
 (defmethod initialize-instance :after ((comp window)
@@ -94,7 +93,8 @@
                                          (border-style :normal)
                                          (fullscreen nil)
                                          (visible t)
-                                       &allow-other-keys)
+                                         &allow-other-keys)
+  (drivers:ensure-active-driver)
   (setf (slot-value comp 'impl)
         (make-instance
          (drivers:driver-window-impl (drivers:active-driver))
@@ -105,27 +105,31 @@
          :state state
          :border-style border-style
          :fullscreen fullscreen
-         :visible visible)))
+         :visible visible))
 
-(declaim (ftype (function () t) current-app))
-(defgeneric app-add-window (app window))
+  (setf (width comp) (drivers:window-width (impl comp))
+        (height comp) (drivers:window-height (impl comp))))
 
 (defmethod initialize-instance :around ((comp window) &key &ellow-other-keys)
   (call-next-method)
   (when (current-app)
-    (app-add-window (current-app) comp)))
+    (sol.impl:app-add-window (current-app) comp)))
 
 (defmethod (setf width) (val (comp window))
-  (setf (drivers:window-width (impl comp)) val)
-  (call-next-method (drivers:window-width (impl comp)) comp))
+  (unless (= val (width comp))
+    (setf (drivers:window-width (impl comp)) val)
+    (call-next-method (drivers:window-width (impl comp)) comp))
+  (width comp))
 
 (defmethod (setf height) (val (comp window))
-  (setf (drivers::window-height (impl comp)) val)
-  (call-next-method (drivers:window-height (impl comp)) comp))
+  (unless (= val (height comp))
+    (setf (drivers::window-height (impl comp)) val)
+    (call-next-method (drivers:window-height (impl comp)) comp))
+  (height comp))
 
 (defmethod measure-override ((comp window) available-width available-height)
-  (let ((des-w (drivers:window-width (impl comp)))
-        (des-h (drivers:window-height (impl comp))))
+  (let ((des-w (width comp))
+        (des-h (height comp)))
     (when (%presenter comp)
       (multiple-value-bind (min-w max-w min-h max-h)
           (%window.min-max comp)
@@ -156,23 +160,24 @@
   (let (min-w max-w min-h max-h)
     (setf min-w (or (min-width comp) 0))
     (setf min-h (or (min-height comp) 0))
-    (setf max-w (or (max-width comp) (drivers:window-width (impl comp))))
-    (setf max-h (or (max-height comp) (drivers:window-height (impl comp))))
+    (setf max-w (or (max-width comp) (width comp)))
+    (setf max-h (or (max-height comp) (height comp)))
     (values min-w max-w min-h max-h)))
 
 (defun impl:impl (window)
   (impl window))
 
+(defun impl:impl-resized (window)
+  (setf (width window) (drivers:window-width (impl window))
+        (height window) (drivers:window-height (impl window))))
+
 (defun impl:impl-closed (window)
   (unless (%closed window)
     (setf (%closed window) t)
 
-    (unwind-protect
-         (dispose (impl window))
-      (slot-makunbound window 'impl)
-      (event-notify
-       (e_window-closed window)
-       window))))
+    (event-notify
+     (e_window-closed window)
+     window)))
 
 (defun impl:impl-mouse-button (window args)
   (when-let ((target (or (capturing-component)

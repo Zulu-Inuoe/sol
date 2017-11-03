@@ -164,7 +164,7 @@ in order to verify that said operations are legal."))
 (defclass dispatcher-frame (dispatcher-object)
   ((continue-frame
     :type boolean
-    :initform :nil
+    :initform t
     :initarg :continue
     :accessor continue-frame))
   (:documentation
@@ -286,6 +286,9 @@ in order to verify that said operations are legal."))
 
 (defmacro do-invoke ((dispatcher) &body body)
   `(invoke ,dispatcher (lambda () ,@body)))
+
+(defmacro do-begin-invoke ((dispatcher) &body body)
+  `(begin-invoke ,dispatcher (lambda () ,@body)))
 
 (defun impl:process-queue (dispatcher)
   "Processes one invoke item from the `dispatcher''s queue."

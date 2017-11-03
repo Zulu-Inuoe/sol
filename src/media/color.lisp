@@ -22,7 +22,7 @@
 
 (defclass color ()
   ((color-vector
-    :type (simple-array (unsigned-byte 8) 4)
+    :type (simple-array (unsigned-byte 8) (4))
     :reader fp)))
 
 (defmethod print-object ((c color) stream)

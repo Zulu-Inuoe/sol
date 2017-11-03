@@ -19,7 +19,7 @@
 ;;;3. This notice may not be removed or altered from any source distribution.
 
 (defpackage #:sol.ui
-  (:use #:alexandria #:cl #:sol.core)
+  (:use #:alexandria #:cl #:sol)
   (:local-nicknames
    (#:dispatcher #:sol.dispatcher)
    (#:drivers #:sol.drivers)

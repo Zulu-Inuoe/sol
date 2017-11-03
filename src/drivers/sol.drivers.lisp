@@ -59,6 +59,8 @@
     (setf *%active-driver* nil)))
 
 ;;;Window
+(defgeneric window-close (window-impl))
+
 (defgeneric window-left (window-impl))
 (defgeneric (setf window-left) (value window-impl))
 

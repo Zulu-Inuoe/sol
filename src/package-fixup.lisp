@@ -18,43 +18,14 @@
 ;;;
 ;;;3. This notice may not be removed or altered from any source distribution.
 
-(defpackage #:sol.core
-  (:use #:alexandria #:cl)
-  (:export
-   ;;;event
-   #:event
+(in-package #:sol)
 
-   #:event-subscribe
-   #:event-notify
-   #:event-unsubscribe
-   #:event-once
-
-   ;;;dispose
-   #:dispose
-   #:with-disposeable
-   #:dispose-on-error
-   #:ensure-dispose
-
-   ;;;disposable
-   #:disposeable
-   #:disposed
-
-   ;;;finalizer
-   #:finalizer
-   #:define-finalizer
-
-   ;;;finalizable
-   #:finalizable
-
-   ;;;app
-   #:current-app
-   #:app-start
-   #:app-quit
-
-   #:app
-   #:windows
-   #:main-window
-
-   #:app-init
-   #:app-add-window
-   #:app-uninit))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (loop
+     :for (nickname actual-package) :in '((#:dispatcher #:sol.dispatcher)
+                                          (#:drivers #:sol.drivers)
+                                          (#:impl #:sol.impl)
+                                          (#:input #:sol.input)
+                                          (#:media #:sol.media)
+                                          (#:ui #:sol.ui))
+     :doing (sb-ext:add-package-local-nickname nickname actual-package)))

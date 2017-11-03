@@ -40,7 +40,9 @@
     :reader text-impl)))
 
 (defmethod initialize-instance :after ((text text) &key &allow-other-keys)
-  (setf (slot-value text 'impl) (make-instance (drivers:driver-text-impl (drivers:active-driver)) :text text)))
+  (drivers:ensure-active-driver)
+  (setf (slot-value text 'impl)
+        (make-instance (drivers:driver-text-impl (drivers:active-driver)) :text text)))
 
 (defmethod print-object ((text text) stream)
   (print-unreadable-object (text stream :type t)

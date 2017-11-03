@@ -42,9 +42,9 @@
 
 ;;;A component is any sort of UI object that can be drawn on screen,
 ;;;which may have user interactivity (buttons or labels, respectively)
-(defclass component ()
+(defclass component (dispatcher:dispatcher-object)
   ((name
-    :type (or string nil) :initform nil
+    :type (or null string) :initform nil
     :initarg :name :accessor name)
    (parent
     :type (or null component) :initform nil
@@ -154,7 +154,7 @@
     :type routed-event
     :initform (make-instance 'routed-event :name "mouse-up"))
    (e_mouse-enter
-    :type router-event
+    :type routed-event
     :initform (make-instance 'routed-event :name "mouse-enter" :routing-strategy :direct))
    (e_mouse-move
     :type routed-event

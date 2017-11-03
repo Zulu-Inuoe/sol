@@ -64,7 +64,7 @@
 
   (mapc
    (lambda (v)
-     (format t "renderer: destroying anon gpu-target: ~A~%" v)
+     (format t "gpu-renderer: destroying anon gpu-target: ~A~%" v)
      (let ((gpu-image (plus-c:c-ref v sdl2-ffi:gpu-target :image)))
        (sdl2-ffi.functions:gpu-free-target v)
        (sdl2-ffi.functions:gpu-free-image gpu-image)))
@@ -75,9 +75,9 @@
   (slot-makunbound renderer '%gpu-target)
   (clrhash (%gpu-render-text-cache renderer)))
 
-(defmethod renderer-size ((renderer sdl2-gpu-renderer)
-                          &aux
-                            (gpu-target (%gpu-target renderer)))
+(defmethod media:renderer-size ((renderer sdl2-gpu-renderer)
+                                &aux
+                                  (gpu-target (%gpu-target renderer)))
   (cffi:with-foreign-objects ((w :uint16) (h :uint16))
     (sdl2-ffi.functions:gpu-get-virtual-resolution gpu-target w h)
     (values (cffi:mem-ref w :uint16) (cffi:mem-ref h :uint16))))
@@ -243,7 +243,7 @@
                                       (target-renderer (car target))
                                       (target-gpu-target (cdr target)))
   (unless (eq renderer target-renderer)
-    (error "renderer: invalid render target for renderer '~A'" target))
+    (error "gpu-renderer: invalid render target for renderer '~A'" target))
 
   (setf (slot-value renderer '%gpu-target) target-gpu-target)
   (values))
@@ -262,7 +262,7 @@
                                        (target-renderer (car target))
                                        (target-gpu-target (cdr target)))
   (unless (eq renderer target-renderer)
-    (error "renderer: invalid render target for renderer '~A'" target))
+    (error "gpu-renderer: invalid render target for renderer '~A'" target))
 
   (when target-gpu-target
     (let ((gpu-target (%gpu-target renderer))
@@ -275,7 +275,7 @@
                                           (target-renderer (car target))
                                           (target-gpu-target (cdr target)))
   (unless (eq renderer target-renderer)
-    (error "renderer: invalid render target for renderer '~A'" target))
+    (error "gpu-renderer: invalid render target for renderer '~A'" target))
 
   (when target-gpu-target
     (let ((target-gpu-image (plus-c:c-ref target-gpu-target sdl2-ffi:gpu-target :image)))

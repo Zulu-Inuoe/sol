@@ -34,7 +34,6 @@
   "A `trivial-garbage:weak-pointer' pointing to the active sdl2-dispatcher. Used by the event filter for dispatching.")
 
 (defmethod initialize-instance :after ((dispatcher sdl2-dispatcher) &key &allow-other-keys)
-  (format t "Initializing dispatcher ~A~%" dispatcher)
   (sdl2-ffi.functions:sdl-set-event-filter (cffi:callback %sdl2-event-filter-callback) (cffi:null-pointer))
 
   (setf (slot-value dispatcher '%invoke-event-type) (sdl2-ffi.functions:sdl-register-events 1))
@@ -125,10 +124,8 @@
 #+win32
 (defclass %message-only-hwnd (finalizable)
   ((%hwnd
-    :type cffi:foreign-pointer
     :reader %hwnd)
    (%class-atom
-    :type cffi:foreign-pointer
     :reader %class-atom)
    (%wndproc
     :type cffi:foreign-pointer

@@ -25,7 +25,7 @@
     :type t
     :initform nil)
    (%content-component
-    :type component
+    :type (or null component)
     :initform nil
     :accessor %content-component))
   (:default-initargs

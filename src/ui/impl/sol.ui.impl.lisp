@@ -20,7 +20,6 @@
 
 (in-package #:sol.ui.impl)
 
-
 (defgeneric window-left (impl))
 (defgeneric (setf window-left) (value impl))
 

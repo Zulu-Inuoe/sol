@@ -39,8 +39,8 @@
     :accessor handled)))
 
 (defmethod event-notify ((event routed-event) (args routed-event-args))
-  (dolist (handler (sol.core::handlers event))
+  (dolist (handler (sol::handlers event))
     (unless (handled args)
-      (funcall (sol.core::handler handler) args)))
+      (funcall (sol::handler handler) args)))
 
   (values))

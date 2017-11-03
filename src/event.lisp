@@ -18,7 +18,7 @@
 ;;;
 ;;;3. this notice may not be removed or altered from any source distribution.
 
-(in-package #:sol.core)
+(in-package #:sol)
 
 (defclass event ()
   ((name

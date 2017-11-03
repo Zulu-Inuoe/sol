@@ -35,7 +35,7 @@
     :reader font-style)
    (font-size
     :documentation "The point size of this font"
-    :type :integer
+    :type integer
     :initarg :size
     :initform 12
     :reader font-size)
@@ -69,7 +69,9 @@
    "Represents font information."))
 
 (defmethod initialize-instance :after ((font font) &key &allow-other-keys)
-  (setf (slot-value font 'impl) (make-instance (drivers:driver-font-impl (drivers:active-driver)) :font font)))
+  (drivers:ensure-active-driver)
+  (setf (slot-value font 'impl)
+        (make-instance (drivers:driver-font-impl (drivers:active-driver)) :font font)))
 
 (defmethod print-object ((f font) stream)
   (print-unreadable-object (f stream :type t)

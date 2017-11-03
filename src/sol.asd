@@ -26,11 +26,13 @@
   :license "zlib/libpng License <http://opensource.org/licenses/zlib-license.php>"
   :serial t
   :components
-  ((:file "core/package")
+  ((:file "package")
    (:file "drivers/package")
 
    (:file "dispatcher/impl/package")
    (:file "dispatcher/package")
+
+   (:file "impl/package")
 
    (:file "input/package")
 
@@ -39,19 +41,16 @@
    (:file "ui/impl/package")
    (:file "ui/package")
 
-   (:file "package")
+   (:file "package-fixup")
 
-   (:module "core"
-    :serial t
-    :components
-    ((:file "event")
-     (:file "dispose")
-     (:file "finalizer")))
+   (:file "event")
+   (:file "dispose")
+   (:file "finalizer")
 
    (:module "drivers"
     :serial t
     :components
-    ((:file "drivers")))
+    ((:file "sol.drivers")))
 
    (:module "dispatcher"
     :serial t
@@ -59,12 +58,17 @@
     ((:module "impl"
       :serial t
       :components
-      ((:file "dispatcher-impl")))
+      ((:file "sol.dispatcher.impl")))
      (:file "dispatcher")
      (:file "dispatcher-event")
 
      (:file "simple-dispatcher")
      (:file "current-dispatcher")))
+
+   (:module "impl"
+    :serial t
+    :components
+    ((:file "sol.impl")))
 
    (:module "input"
     :serial t
@@ -95,7 +99,7 @@
     ((:module "impl"
       :serial t
       :components
-      ((:file "window-impl")))
+      ((:file "sol.ui.impl")))
      (:file "command-base")
      (:file "delegate-command")
 
@@ -161,8 +165,8 @@
      (:file "sdl2-gpu-window-impl")
 
      ;;driver
-     (:file "sdl2-gpu-driver")
-     (:file "sdl2-driver"))))
+     (:file "sdl2-driver")
+     (:file "sdl2-gpu-driver"))))
   :depends-on
   (#:alexandria
    #:bordeaux-threads

@@ -19,13 +19,7 @@
 ;;;3. This notice may not be removed or altered from any source distribution.
 
 (defpackage #:sol
-  (:use #:alexandria #:cl #:sol.core)
-  (:local-nicknames
-   (#:dispatcher #:sol.dispatcher)
-   (#:drivers #:sol.drivers)
-   (#:input #:sol.input)
-   (#:media #:sol.media)
-   (#:ui #:sol.ui))
+  (:use #:alexandria #:cl)
   (:export
    ;;;event
    #:event
@@ -42,7 +36,7 @@
    #:ensure-dispose
 
    ;;;disposable
-   #:disposable
+   #:disposeable
    #:disposed
 
    ;;;finalizer

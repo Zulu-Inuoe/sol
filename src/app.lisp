@@ -22,6 +22,7 @@
 
 (defclass app (dispatcher:dispatcher-object)
   ((main-window
+    :type (or null ui:window)
     :initform nil
     :reader main-window)
    (windows
@@ -52,17 +53,11 @@
   *%current-app*)
 
 (defgeneric app-init (app))
-(defgeneric app-add-window (app window))
 (defgeneric app-uninit (app))
 
 (defmethod app-init ((app app))
   (declare (ignore app))
   (values))
-
-(defmethod app-add-window ((app app) window)
-  (push window (windows app))
-  (unless (main-window app)
-    (setf (main-window app) window)))
 
 (defmethod app-uninit ((app app))
   (when (main-window app)
@@ -77,32 +72,52 @@
 (defun app-start (&optional (app-class 'app))
   (when (current-app)
     (error "app: app already running"))
+
   (drivers:ensure-active-driver)
-  (dispatcher:do-invoke ((drivers:driver-dispatcher (drivers:active-driver)))
-    (let ((app (make-instance app-class)))
-      (setf *%current-app* app)
-      (app-init app)
-      (unwind-protect
+
+  (let ((app (make-instance app-class))
+        success)
+    (setf *%current-app* app)
+    (unwind-protect
+         (progn
+           (app-init app)
+           (setf success t))
+      (unless success
+        (setf *%current-app* nil)))
+    (setf success nil)
+
+    (unwind-protect
+         (progn
+           ;;run the dispatcher
            (dispatcher:run)
-        (when (eq *%current-app* app)
-          (%app.do-quit app))
-        (drivers:ensure-shutdown-driver))))
+           (setf success t))
+      (unless (and success (null *%current-app*))
+        ;;When either we encountered an error,
+        ;;or the app was not shut down properly
+        ;;uninitialize before exiting
+        (unwind-protect
+             (app-uninit app)
+          (setf *%current-app* nil)))))
   (values))
 
 (defun app-quit (&aux (app (current-app)))
   (unless app
     (error "app: no current app running"))
-  (dispatcher:do-invoke ((dispatcher:dispatcher app))
-    (%app.do-quit app))
+  (dispatcher:verify-access app)
+
+  (unwind-protect
+       (app-uninit app)
+    (setf *%current-app* nil))
 
   (dispatcher:invoke-shutdown (dispatcher:dispatcher app))
+  ;;Shutting down the dispatcher more or less kills the driver anyway
   (drivers:ensure-shutdown-driver)
   (values))
 
-(defun %app.do-quit (app)
-  (app-uninit app)
-  (setf *%current-app* nil)
-  (values))
+(defmethod impl:app-add-window ((app app) window)
+  (push window (windows app))
+  (unless (main-window app)
+    (setf (main-window app) window)))
 
 (defun %app.on-main-window-closed (app window)
   (setf (windows app) (delete window (windows app)))

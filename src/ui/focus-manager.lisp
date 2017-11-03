@@ -65,7 +65,8 @@
 
 (defclass focus-manager ()
   ((%focused-component
-    :type component :initform nil)))
+    :type (or null component)
+    :initform nil)))
 
 (defmethod focused-component ((focus-manager focus-manager))
   (slot-value focus-manager '%focused-component))

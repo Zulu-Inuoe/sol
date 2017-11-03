@@ -19,7 +19,7 @@
 ;;;3. This notice may not be removed or altered from any source distribution.
 
 (defpackage #:sol.input
-  (:use #:alexandria #:cl #:sol.core)
+  (:use #:alexandria #:cl #:sol)
   (:export
    #:input-manager
    #:e_mouse-move

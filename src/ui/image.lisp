@@ -23,7 +23,6 @@
 (defclass image (component)
   ((source
     :type media:image
-    :initform nil
     :accessor source)
    (stretch
     :type keyword

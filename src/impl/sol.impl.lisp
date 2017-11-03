@@ -18,14 +18,6 @@
 ;;;
 ;;;3. This notice may not be removed or altered from any source distribution.
 
-(defpackage #:sol.ui.impl
-  (:use #:alexandria #:cl #:sol)
-  (:export
-   #:impl
-   #:impl-resized
-   #:impl-closed
-   #:impl-mouse-button
-   #:impl-mouse-move
-   #:impl-mouse-wheel
-   #:impl-key
-   #:impl-text-input))
+(in-package #:sol.impl)
+
+(defgeneric app-add-window (app window))

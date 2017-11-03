@@ -19,7 +19,7 @@
 ;;;3. This notice may not be removed or altered from any source distribution.
 
 (defpackage #:sol.sdl2-driver
-  (:use #:alexandria #:cl #:sol.core #:sol.drivers)
+  (:use #:alexandria #:cl #:sol #:sol.drivers)
   (:local-nicknames
    (#:dispatcher #:sol.dispatcher)
    (#:dispatcher.impl #:sol.dispatcher.impl)

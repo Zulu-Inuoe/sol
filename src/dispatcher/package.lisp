@@ -19,7 +19,7 @@
 ;;;3. This notice may not be removed or altered from any source distribution.
 
 (defpackage #:sol.dispatcher
-  (:use #:alexandria #:cl #:sol.core)
+  (:use #:alexandria #:cl #:sol)
   (:local-nicknames
    (#:drivers #:sol.drivers)
    (#:impl #:sol.dispatcher.impl))
@@ -63,9 +63,11 @@
    #:invoke-shutdown
 
    #:do-invoke
+   #:do-begin-invoke
 
    #:dispatcher-unhandled-error-args
    #:args-error
    #:handled
 
+   ;;dispatcher-event
    #:dispatcher-event))

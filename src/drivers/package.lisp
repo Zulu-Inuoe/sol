@@ -19,7 +19,7 @@
 ;;;3. This notice may not be removed or altered from any source distribution.
 
 (defpackage #:sol.drivers
-  (:use #:cl #:sol.core)
+  (:use #:cl #:sol)
   (:export
    #:driver-class
    #:define-driver
@@ -35,7 +35,7 @@
    #:ensure-shutdown-driver
 
    ;;window-impl
-   #:window-id
+   #:window-close
    #:window-left
    #:window-top
    #:window-width

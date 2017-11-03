@@ -1,4 +1,4 @@
-(declaim (optimize (debug 3)))
+(declaim (optimize (speed 0) (space 0) (safety 3) (debug 3)))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (let ((ql:*local-project-directories* ql:*local-project-directories*))
@@ -22,12 +22,13 @@
 (defmethod app-init ((app test-app))
   (make-instance
    'ui:window
-   :left 2300
+   :left 2300 :top 300
    :height 350 :width 525
    :content
    (make-instance
     'ui:button
-    :content "hello, world!")))
+    :content "Hello, world!")))
 
 (defun run-test ()
   (app-start 'test-app))
+

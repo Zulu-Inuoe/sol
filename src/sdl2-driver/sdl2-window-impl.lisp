@@ -20,7 +20,7 @@
 
 (in-package #:sol.sdl2-driver)
 
-(defclass sdl2-window-impl (finalizable)
+(defclass sdl2-window-impl ()
   ((ui-window
     :type ui:window
     :initarg :window
@@ -42,7 +42,11 @@
     :accessor sdl-window-w)
    (sdl-window-h
     :type integer
-    :accessor sdl-window-h)))
+    :accessor sdl-window-h)
+   (closed
+    :type boolean
+    :initform nil
+    :accessor closed)))
 
 (defgeneric sdl-create-renderer (impl sdl-window))
 (defgeneric sdl-window-event (impl event-type data1 data2))
@@ -55,8 +59,6 @@
     (sdl2:set-render-draw-blend-mode sdl-renderer sdl2-ffi:+sdl-blendmode-blend+)
     (make-instance 'sdl2-sdl-renderer :native sdl-renderer)))
 
-(defvar *%in-resize* nil)
-(defvar *%in-closing* nil)
 (defmethod sdl-window-event ((impl sdl2-window-impl) event-type data1 data2)
   (case event-type
     (:shown
@@ -67,19 +69,12 @@
     (:moved
      (setf (sdl-window-l impl) data1
            (sdl-window-t impl) data2))
-    (:resized
-     (setf (sdl-window-w impl) data1
-           (sdl-window-h impl) data2)
-     (let ((*%in-resize* t))
-       (setf (ui:width (ui-window impl)) (sdl-window-w impl)
-             (ui:height (ui-window impl)) (sdl-window-h impl)))
-     (sdl-draw impl))
-    (:size-changed
-     (setf (sdl-window-w impl) data1
-           (sdl-window-h impl) data2)
-     (let ((*%in-resize* t))
-       (setf (ui:width (ui-window impl)) (sdl-window-w impl)
-             (ui:height (ui-window impl)) (sdl-window-h impl)))
+    ((:resized :size-changed)
+     (unless (and (= (sdl-window-w impl) data1)
+                  (= (sdl-window-h impl) data2))
+       (setf (sdl-window-w impl) data1
+             (sdl-window-h impl) data2)
+       (ui.impl:impl-resized (ui-window impl)))
      (sdl-draw impl))
     (:minimized)
     (:maximized)
@@ -95,9 +90,10 @@
     (:focus-lost
      (setf (ui:active-focus-manager) nil))
     (:close
-     (let ((*%in-closing* t))
-       (ui.impl:impl-closed (ui-window impl))
-       (dispose impl)))))
+     (setf (closed impl) t)
+     (dispatcher:do-begin-invoke ((dispatcher:dispatcher (ui-window impl)))
+       (window-close impl)
+       (ui.impl:impl-closed (ui-window impl))))))
 
 (defmethod sdl-draw ((impl sdl2-window-impl) &aux (renderer (renderer impl)))
   (media:render-clear renderer :color media.colors:*white*)
@@ -169,20 +165,13 @@
      impl
      '%sdl2-window-impl.sdl2-event))
 
-(define-finalizer sdl2-window-impl (sdl-window renderer)
-  (unwind-protect
-       (dispose renderer)
-    (sdl2-ffi.functions:sdl-destroy-window sdl-window)))
-
-(defmethod dispose ((impl sdl2-window-impl))
+(defmethod window-close ((impl sdl2-window-impl))
   (event-unsubscribe
    *e_sdl2-event*
    impl)
-  (unless *%in-closing*
-    (ui.impl:impl-closed (ui-window impl)))
-  (slot-makunbound impl 'ui-window)
-  (call-next-method)
+  (dispose (renderer impl))
   (slot-makunbound impl 'renderer)
+  (sdl2-ffi.functions:sdl-destroy-window (sdl-window impl))
   (slot-makunbound impl 'sdl-window))
 
 (defmethod window-left ((impl sdl2-window-impl))
@@ -215,8 +204,8 @@
   (sdl-window-w impl))
 
 (defmethod (setf window-width) (value (impl sdl2-window-impl))
-  (unless *%in-resize*
-    (setf value (round value))
+  (setf value (round value))
+  (unless (= value (sdl-window-w impl))
     (sdl2-ffi.functions:sdl-set-window-size
      (sdl-window impl)
      value
@@ -228,8 +217,8 @@
   (sdl-window-h impl))
 
 (defmethod (setf window-height) (value (impl sdl2-window-impl))
-  (unless *%in-resize*
-    (setf value (round value))
+  (setf value (round value))
+  (unless (= value (sdl-window-h impl))
     (sdl2-ffi.functions:sdl-set-window-size
      (sdl-window impl)
      (sdl-window-w impl)
@@ -359,7 +348,8 @@
               sdl-event
               sdl2-ffi:sdl-event
               :window :data2)))
-       (sdl-window-event impl (%window-event->sym event-type) data1 data2)))
+       (unless (closed impl)
+         (sdl-window-event impl (%window-event->sym event-type) data1 data2))))
     ((:keydown :keyup)
      (let* ((device
              :keyboard/mouse)

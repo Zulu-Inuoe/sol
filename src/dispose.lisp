@@ -18,7 +18,7 @@
 ;;;
 ;;;3. This notice may not be removed or altered from any source distribution.
 
-(in-package #:sol.core)
+(in-package #:sol)
 
 (defgeneric dispose (object)
   (:documentation

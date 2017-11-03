@@ -36,6 +36,7 @@
                                        &key
                                          (path (error "image: must supply path"))
                                          &allow-other-keys)
+  (drivers:ensure-active-driver)
   (etypecase path
     ((or string pathname)
      (setf path (pathname path))))
