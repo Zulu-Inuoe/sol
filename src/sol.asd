@@ -176,6 +176,7 @@
    #:parse-float
    #:sdl2
    #:sdl-gpu
+   #:sdl2-gfx
    #:sdl2-image
    #:sdl2-ttf
    #:split-sequence
