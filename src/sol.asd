@@ -175,7 +175,7 @@
    #:exit-hooks
    #:parse-float
    #:sdl2
-   #:sdl2-gpu
+   #:sdl-gpu
    #:sdl2-gfx
    #:sdl2-image
    #:sdl2-ttf

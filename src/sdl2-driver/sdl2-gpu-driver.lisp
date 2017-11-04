@@ -28,7 +28,7 @@
 (defmethod dispose ((driver sdl2-gpu-driver))
   (when *%gpu-already-init*
     (setf *%gpu-already-init* nil)
-    (sdl2-ffi.functions:gpu-quit))
+    (sdl-gpu:gpu-quit))
   (call-next-method))
 
 (defmethod driver-window-impl ((driver sdl2-gpu-driver))

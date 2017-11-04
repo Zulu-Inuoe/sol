@@ -22,7 +22,7 @@
 
 (defclass sdl2-gpu-renderer ()
   ((%gpu-target
-    :type sdl2-ffi:gpu-target
+    :type cffi:foreign-pointer
     :initarg :gpu-target
     :initform (error "renderer: must supply gpu-target")
     :reader %gpu-target)
@@ -58,20 +58,20 @@
    (lambda (k v)
      (declare (ignore k))
      (format t "gpu-renderer: destroying gpu-image: ~A~%" v)
-     (sdl2-ffi.functions:gpu-free-image v))
+     (sdl-gpu:gpu-free-image v))
    (%gpu-render-surface-cache renderer))
   (clrhash (%gpu-render-surface-cache renderer))
 
   (mapc
    (lambda (v)
      (format t "gpu-renderer: destroying anon gpu-target: ~A~%" v)
-     (let ((gpu-image (plus-c:c-ref v sdl2-ffi:gpu-target :image)))
-       (sdl2-ffi.functions:gpu-free-target v)
-       (sdl2-ffi.functions:gpu-free-image gpu-image)))
+     (let ((gpu-image (cffi:foreign-slot-value v '(:struct sdl-gpu:gpu-target) 'sdl-gpu:image)))
+       (sdl-gpu:gpu-free-target v)
+       (sdl-gpu:gpu-free-image gpu-image)))
    (%gpu-render-anon-target-cache renderer))
   (setf (%gpu-render-anon-target-cache renderer) ())
 
-  (sdl2-ffi.functions:gpu-free-target (%gpu-target renderer))
+  (sdl-gpu:gpu-free-target (%gpu-target renderer))
   (slot-makunbound renderer '%gpu-target)
   (clrhash (%gpu-render-text-cache renderer)))
 
@@ -79,7 +79,7 @@
                                 &aux
                                   (gpu-target (%gpu-target renderer)))
   (cffi:with-foreign-objects ((w :uint16) (h :uint16))
-    (sdl2-ffi.functions:gpu-get-virtual-resolution gpu-target w h)
+    (sdl-gpu:gpu-get-virtual-resolution gpu-target w h)
     (values (cffi:mem-ref w :uint16) (cffi:mem-ref h :uint16))))
 
 
@@ -88,28 +88,28 @@
                                  (color media.colors:*transparent*)
                                &aux
                                  (gpu-target (%gpu-target renderer)))
-  (sdl2-ffi.functions:gpu-clear-rgba gpu-target (media:r color) (media:g color) (media:b color) (media:a color))
+  (sdl-gpu:gpu-clear-rgba gpu-target (media:r color) (media:g color) (media:b color) (media:a color))
   (values))
 
 (defmethod media:render-present ((renderer sdl2-gpu-renderer)
                                  &aux (gpu-target (%gpu-target renderer)))
-  (sdl2-ffi.functions:gpu-flip gpu-target)
+  (sdl-gpu:gpu-flip gpu-target)
   (values))
 
 (defmethod media:render-pop ((renderer sdl2-gpu-renderer))
   (when (null (%gpu-render-matrix-stack renderer))
     (error "invalid pop"))
 
-  (sdl2-ffi.functions:gpu-matrix-mode sdl2-ffi:+gpu-modelview+)
+  (sdl-gpu:gpu-matrix-mode sdl-gpu:+gpu-modelview+)
   (let ((mat (pop (%gpu-render-matrix-stack renderer))))
-    (sdl2-ffi.functions:gpu-flush-blit-buffer)
-    (sdl2-ffi.functions:gpu-matrix-copy (sdl2-ffi.functions:gpu-get-current-matrix) mat)
+    (sdl-gpu:gpu-flush-blit-buffer)
+    (sdl-gpu:gpu-matrix-copy (sdl-gpu:gpu-get-current-matrix) mat)
     (cffi:foreign-free mat))
   (values))
 
 (defmethod media:render-push-translate ((renderer sdl2-gpu-renderer) x y)
   (%gpu-render-push-matrix renderer)
-  (sdl2-ffi.functions:gpu-translate (float x) (float y) 0.0)
+  (sdl-gpu:gpu-translate (float x) (float y) 0.0)
   (values))
 
 (defmethod media:render-push-rotate ((renderer sdl2-gpu-renderer) angle
@@ -117,12 +117,12 @@
                                        (x 0.0)
                                        (y 0.0))
   (%gpu-render-push-matrix renderer)
-  (sdl2-ffi.functions:gpu-rotate (coerce (%radians->degrees angle) 'single-float) (float x) (float y) 1.0)
+  (sdl-gpu:gpu-rotate (coerce (%radians->degrees angle) 'single-float) (float x) (float y) 1.0)
   (values))
 
 (defmethod media:render-push-scale ((renderer sdl2-gpu-renderer) scale-x scale-y)
   (%gpu-render-push-matrix renderer)
-  (sdl2-ffi.functions:gpu-scale (float scale-x) (float scale-y) 1.0)
+  (sdl-gpu:gpu-scale (float scale-x) (float scale-y) 1.0)
   (values))
 
 (defmethod media:render-draw-point ((renderer sdl2-gpu-renderer) x y
@@ -130,7 +130,7 @@
                                       (color media.colors:*black*)
                                     &aux
                                       (gpu-target (%gpu-target renderer)))
-  (sdl2-ffi.functions:gpu-pixel gpu-target (float x) (1+ (float y)) (media:pack-color color))
+  (sdl-gpu:gpu-pixel gpu-target (float x) (1+ (float y)) (media:pack-color color))
   (values))
 
 (defmethod media:render-draw-line ((renderer sdl2-gpu-renderer) x1 y1 x2 y2
@@ -138,9 +138,9 @@
                                      (color media.colors:*black*)
                                      (thickness 1)
                                    &aux (gpu-target (%gpu-target renderer)))
-  (let ((old-thickness (sdl2-ffi.functions:gpu-set-line-thickness (float thickness))))
-    (sdl2-ffi.functions:gpu-line gpu-target (float x1) (float y1) (float x2) (float y2) (media:pack-color color))
-    (sdl2-ffi.functions:gpu-set-line-thickness old-thickness))
+  (let ((old-thickness (sdl-gpu:gpu-set-line-thickness (float thickness))))
+    (sdl-gpu:gpu-line gpu-target (float x1) (float y1) (float x2) (float y2) (media:pack-color color))
+    (sdl-gpu:gpu-set-line-thickness old-thickness))
   (values))
 
 (defmethod media:render-draw-rect ((renderer sdl2-gpu-renderer) x y width height
@@ -160,11 +160,11 @@
                                      (fill-x2 (float (- stroke-x2 stroke-thickness)))
                                      (fill-y2 (float (- stroke-y2 stroke-thickness))))
   (when (and stroke (> stroke-thickness 0))
-    (sdl2-ffi.functions:gpu-rectangle-filled
+    (sdl-gpu:gpu-rectangle-filled
      gpu-target
      stroke-x1 stroke-y1 stroke-x2 stroke-y2 (media:pack-color stroke)))
   (when fill
-    (sdl2-ffi.functions:gpu-rectangle-filled
+    (sdl-gpu:gpu-rectangle-filled
      gpu-target
      fill-x1 fill-y1 fill-x2 fill-y2 (media:pack-color fill))))
 
@@ -182,11 +182,11 @@
                                         (fill-rx (- rx stroke-thickness))
                                         (fill-ry (- ry stroke-thickness)))
   (when stroke
-    (sdl2-ffi.functions:gpu-ellipse-filled
+    (sdl-gpu:gpu-ellipse-filled
      gpu-target
      (float x) (float y) stroke-rx stroke-ry 0.0 (media:pack-color stroke)))
   (when fill
-    (sdl2-ffi.functions:gpu-ellipse-filled
+    (sdl-gpu:gpu-ellipse-filled
      gpu-target
      (float x) (float y) fill-rx fill-ry 0.0 (media:pack-color fill))))
 
@@ -205,34 +205,24 @@
         (dst-y (float y))
         (dst-w (float width))
         (dst-h (float height)))
-    (plus-c:c-let ((src sdl2-ffi:gpu-rect)
-                   (dst sdl2-ffi:gpu-rect))
-      (setf (plus-c:c-ref src sdl2-ffi:gpu-rect :x) src-x
-            (plus-c:c-ref src sdl2-ffi:gpu-rect :y) src-y
-            (plus-c:c-ref src sdl2-ffi:gpu-rect :w) src-w
-            (plus-c:c-ref src sdl2-ffi:gpu-rect :h) src-h)
-
-      (setf (plus-c:c-ref dst sdl2-ffi:gpu-rect :x) dst-x
-            (plus-c:c-ref dst sdl2-ffi:gpu-rect :y) dst-y
-            (plus-c:c-ref dst sdl2-ffi:gpu-rect :w) dst-w
-            (plus-c:c-ref dst sdl2-ffi:gpu-rect :h) dst-h)
-
-      (sdl2-ffi.functions:gpu-blit-rect-x
+    (sdl-gpu:with-gpu-rects ((src :x src-x :y src-y :w src-w :h src-h)
+                             (dst :x dst-x :y dst-y :w dst-w :h dst-h))
+      (sdl-gpu:gpu-blit-rect-x
        gpu-image src gpu-target dst
        0.0 0.0 0.0
        (case flip
-         (:x sdl2-ffi:+gpu-flip-horizontal+)
-         (:y sdl2-ffi:+gpu-flip-vertical+)
-         (:both (logior sdl2-ffi:+gpu-flip-horizontal+ sdl2-ffi:+gpu-flip-vertical+))
-         (t sdl2-ffi:+gpu-flip-none+))))))
+         (:x sdl-gpu:+gpu-flip-horizontal+)
+         (:y sdl-gpu:+gpu-flip-vertical+)
+         (:both (logior sdl-gpu:+gpu-flip-horizontal+ sdl-gpu:+gpu-flip-vertical+))
+         (t sdl-gpu:+gpu-flip-none+))))))
 
 (defmethod media:render-draw-text ((renderer sdl2-gpu-renderer) text x y)
   (let ((gpu-target (%gpu-target renderer))
         (gpu-image (%gpu-render-cache-text renderer text)))
-    (sdl2-ffi.functions:gpu-blit
+    (sdl-gpu:gpu-blit
      gpu-image (cffi:null-pointer) gpu-target
-     (float (+ x (/ (plus-c:c-ref gpu-image sdl2-ffi:gpu-image :w) 2)))
-     (float (+ y (/ (plus-c:c-ref gpu-image sdl2-ffi:gpu-image :h) 2)))))
+     (float x)
+     (float y)))
   (values))
 
 (defmethod media:render-get-target ((renderer sdl2-gpu-renderer))
@@ -249,11 +239,12 @@
   (values))
 
 (defmethod media:render-create-target ((renderer sdl2-gpu-renderer) width height &key (opacity 1.0))
-  (let ((gpu-image (sdl2-ffi.functions:gpu-create-image width height sdl2-ffi:+gpu-format-abgr+)))
-    (sdl2-ffi.functions:gpu-set-blending gpu-image 1)
-    (sdl2-ffi.functions:gpu-set-rgba gpu-image #xFF #xFF #xFF (truncate (* (clamp opacity 0 1) #xFF)))
+  (let ((gpu-image (sdl-gpu:gpu-create-image width height sdl-gpu:+gpu-format-rgba+)))
+    (sdl-gpu:gpu-set-blending gpu-image 1)
+    (sdl-gpu:gpu-set-rgba gpu-image #xFF #xFF #xFF (truncate (* (clamp opacity 0 1) #xFF)))
+    (sdl-gpu:gpu-set-anchor gpu-image 0.0 0.0)
 
-    (let ((target (cons renderer (sdl2-ffi.functions:gpu-load-target gpu-image))))
+    (let ((target (cons renderer (sdl-gpu:gpu-load-target gpu-image))))
       (push (cdr target) (%gpu-render-anon-target-cache renderer))
       target)))
 
@@ -266,8 +257,8 @@
 
   (when target-gpu-target
     (let ((gpu-target (%gpu-target renderer))
-          (target-gpu-image (plus-c:c-ref target-gpu-target sdl2-ffi:gpu-target :image)))
-      (sdl2-ffi.functions:gpu-blit target-gpu-image (cffi:null-pointer) gpu-target x y)))
+          (target-gpu-image (cffi:foreign-slot-value target-gpu-target '(:struct sdl-gpu:gpu-target) 'sdl-gpu:image)))
+      (sdl-gpu:gpu-blit target-gpu-image (cffi:null-pointer) gpu-target x y)))
   (values))
 
 (defmethod media:render-destroy-target ((renderer sdl2-gpu-renderer) target
@@ -278,9 +269,9 @@
     (error "gpu-renderer: invalid render target for renderer '~A'" target))
 
   (when target-gpu-target
-    (let ((target-gpu-image (plus-c:c-ref target-gpu-target sdl2-ffi:gpu-target :image)))
-      (sdl2-ffi.functions:gpu-free-target target-gpu-target)
-      (sdl2-ffi.functions:gpu-free-image target-gpu-image))
+    (let ((target-gpu-image (cffi:foreign-slot-value target-gpu-target '(:struct sdl-gpu:gpu-target) 'sdl-gpu:image)))
+      (sdl-gpu:gpu-free-target target-gpu-target)
+      (sdl-gpu:gpu-free-image target-gpu-image))
 
     (setf (%gpu-render-anon-target-cache target-renderer)
           (delete target-gpu-target (%gpu-render-anon-target-cache target-renderer)))
@@ -293,8 +284,9 @@
                                           (key surface))
   (let ((gpu-image (gethash key map)))
     (unless gpu-image
-      (setf gpu-image (sdl2-ffi.functions:gpu-copy-image-from-surface surface))
-      (sdl2-ffi.functions:gpu-set-blending gpu-image 1)
+      (setf gpu-image (sdl-gpu:gpu-copy-image-from-surface (autowrap:ptr surface)))
+      (sdl-gpu:gpu-set-blending gpu-image 1)
+      (sdl-gpu:gpu-set-anchor gpu-image 0.0 0.0)
       (setf (gethash key map) gpu-image))
 
     gpu-image))
@@ -306,7 +298,7 @@
   (let ((gpu-image (gethash key map)))
     (unless gpu-image
       (error "gpu-renderer: attempting to uncache unknown gpu-image '~A'" key))
-    (sdl2-ffi.functions:gpu-free-image gpu-image)
+    (sdl-gpu:gpu-free-image gpu-image)
     (remhash key map))
   (values))
 
@@ -326,9 +318,9 @@
     (%gpu-render-cache-surface-image renderer surface)))
 
 (defun %gpu-render-push-matrix (renderer)
-  (sdl2-ffi.functions:gpu-matrix-mode sdl2-ffi:+gpu-modelview+)
+  (sdl-gpu:gpu-matrix-mode sdl-gpu:+gpu-modelview+)
   (let ((new-mat (cffi:foreign-alloc :float :count 16)))
-    (sdl2-ffi.functions:gpu-matrix-copy new-mat (sdl2-ffi.functions:gpu-get-current-matrix))
+    (sdl-gpu:gpu-matrix-copy new-mat (sdl-gpu:gpu-get-current-matrix))
     (push new-mat (%gpu-render-matrix-stack renderer)))
   (values))
 

@@ -22,7 +22,7 @@
 
 (defclass sdl2-gpu-window-impl (sdl2-window-impl)
   ((gpu-target
-    :type sdl2-ffi:gpu-target
+    :type cffi:foreign-pointer
     :reader gpu-target)))
 
 (defvar *%gpu-already-init* nil)
@@ -32,10 +32,10 @@
   (let ((gpu-target
          (cond
            (*%gpu-already-init*
-            (sdl2-ffi.functions:gpu-create-target-from-window window-id))
+            (sdl-gpu:gpu-create-target-from-window window-id))
            (t
-            (sdl2-ffi.functions:gpu-set-init-window window-id)
-            (prog1 (sdl2-ffi.functions:gpu-init 0 0 0)
+            (sdl-gpu:gpu-set-init-window window-id)
+            (prog1 (sdl-gpu:gpu-init 0 0 0)
               (setf *%gpu-already-init* t))))))
     (setf (slot-value impl 'gpu-target) gpu-target)
     (make-instance 'sdl2-gpu-renderer :gpu-target gpu-target)))
@@ -43,7 +43,7 @@
 (defmethod sdl-window-event ((impl sdl2-gpu-window-impl) event-type data1 data2)
   (case event-type
     ((:size-changed :resized)
-     (sdl2-ffi.functions:gpu-make-current (gpu-target impl) (sdl2:get-window-id (sdl-window impl)))
-     (sdl2-ffi.functions:gpu-set-window-resolution data1 data2)))
+     (sdl-gpu:gpu-make-current (gpu-target impl) (sdl2:get-window-id (sdl-window impl)))
+     (sdl-gpu:gpu-set-window-resolution data1 data2)))
 
   (call-next-method))
