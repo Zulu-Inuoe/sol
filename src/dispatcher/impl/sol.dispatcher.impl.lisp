@@ -26,3 +26,6 @@
 (defgeneric send-invoke-signal (dispatcher-impl)
   (:documentation "Requests that the dispatcher-impl be made aware of a new invoke request.
 NOTE: This function may be called from any thread, including the dispatcher's own."))
+
+(defgeneric send-shutdown-signal (dispatcher-impl)
+  (:documentation "Requests that the dispatcher-impl be made aware that the shutdown process has begun."))

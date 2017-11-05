@@ -107,14 +107,16 @@
    This holds all currently existing dispatchers.")
 
 (defmethod dispose ((obj dispatcher))
-  (unless (or (shutdown-started obj)
-              (shutdown-finished obj))
-    (invoke-shutdown obj))
-
   (loop
      :for (thread . disp) :in (hash-table-alist *%dispatchers*)
      :when (eq obj disp)
      :do (remhash thread *%dispatchers*))
+  (call-next-method))
+
+(defmethod dispose :around ((obj dispatcher))
+  (unless (or (shutdown-started obj)
+              (shutdown-finished obj))
+    (invoke-shutdown obj))
   (call-next-method))
 
 (defun from-thread (thread)
@@ -327,4 +329,6 @@ in order to verify that said operations are legal."))
 
 (defun %shutdown-callback-impl ()
   (let ((d (current-dispatcher)))
-    (setf (shutdown-started d) t)))
+    (setf (shutdown-started d) t)
+    (impl:send-shutdown-signal d))
+  (values))

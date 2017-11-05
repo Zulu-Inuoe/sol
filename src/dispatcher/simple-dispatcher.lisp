@@ -63,7 +63,11 @@
     :reader %simple-dispatcher-invoke-event)))
 
 (defmethod impl:wait-invoke-signal ((dispatcher %simple-dispatcher))
-  (%wait-one (%simple-dispatcher-invoke-event dispatcher)))
+  (and (%wait-one (%simple-dispatcher-invoke-event dispatcher))
+       (not (shutdown-started dispatcher))))
 
 (defmethod impl:send-invoke-signal ((dispatcher %simple-dispatcher))
+  (%set-event (%simple-dispatcher-invoke-event dispatcher)))
+
+(defmethod impl:send-shutdown-signal ((dispatcher %simple-dispatcher))
   (%set-event (%simple-dispatcher-invoke-event dispatcher)))

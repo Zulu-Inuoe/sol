@@ -141,7 +141,10 @@
     ((:file "package")
      (:file "sdl2-event")
      ;;dispatcher
+     #-win32
      (:file "sdl2-dispatcher")
+     #+win32
+     (:file "sdl2-dispatcher-win32")
 
      ;;font
      (:file "sdl2-font-context")

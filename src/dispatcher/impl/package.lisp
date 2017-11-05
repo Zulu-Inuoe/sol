@@ -23,4 +23,5 @@
   (:export
    #:process-queue
    #:wait-invoke-signal
-   #:send-invoke-signal))
+   #:send-invoke-signal
+   #:send-shutdown-signal))
