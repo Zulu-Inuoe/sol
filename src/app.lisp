@@ -123,4 +123,5 @@
   (setf (windows app) (delete window (windows app)))
 
   (when (eq window (main-window app))
-    (app-quit)))
+    (dispatcher:do-begin-invoke ((dispatcher:dispatcher app))
+      (app-quit))))
