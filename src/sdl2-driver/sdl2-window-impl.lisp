@@ -100,7 +100,7 @@
   (ui:draw (ui-window impl) renderer)
   (media:render-present renderer))
 
-#+(and win32 swank)
+#+(and win32 (or slynk swank))
 (defvar *%sdl-window-first-window* t)
 
 (defmethod initialize-instance :after ((impl sdl2-window-impl)
@@ -158,7 +158,7 @@
     (%sdl2-window-impl.refresh-pos impl)
     (%sdl2-window-impl.refresh-size impl)
 
-    #+(and win32 swank)
+    #+(and win32 (or slynk swank))
     (progn
       (when (and visible *%sdl-window-first-window*)
         (sdl2:hide-window sdl-window)
