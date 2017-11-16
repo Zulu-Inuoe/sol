@@ -109,7 +109,6 @@
             (disp (and disp-ptr (trivial-garbage:weak-pointer-value disp-ptr))))
        (unless disp
          (error "sdl2-dispatcher: no dispatcher available during wndproc"))
-       (format t "Got invoke request!~%")
        (dispatcher.impl:process-queue disp))
      0)
     (otherwise
