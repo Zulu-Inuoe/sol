@@ -18,50 +18,29 @@
 ;;;
 ;;;3. This notice may not be removed or altered from any source distribution.
 
-(defpackage #:sol
-  (:use #:alexandria #:cl)
-  (:export
-   ;;;timespan
-   #:timespan-from-millis
-   #:timespan-from-seconds
-   #:timespan-from-minutes
-   #:timespan-from-hours
-   #:timespan-from-time
+(in-package #:sol)
 
-   ;;;event
-   #:event
+(defun timespan-from-millis (ms)
+  (timespan-from-time :millis ms))
 
-   #:event-subscribe
-   #:event-notify
-   #:event-unsubscribe
-   #:event-once
+(defun timespan-from-seconds (seconds)
+  (timespan-from-time :seconds seconds))
 
-   ;;;dispose
-   #:dispose
-   #:with-disposeable
-   #:dispose-on-error
-   #:ensure-dispose
+(defun timespan-from-minutes (minutes)
+  (timespan-from-time :minutes minutes))
 
-   ;;;disposable
-   #:disposeable
-   #:disposed
+(defun timespan-from-hours (hours)
+  (timespan-from-time :hours hours))
 
-   ;;;finalizer
-   #:finalizer
-   #:define-finalizer
+(defun timespan-from-time (&key millis seconds minutes hours)
+  (let ((timespan 0))
+    (when millis
+      (incf timespan (* (/ millis 1000) internal-time-units-per-second)))
+    (when seconds
+      (incf timespan (* seconds internal-time-units-per-second)))
+    (when minutes
+      (incf timespan (* (* minutes  60) internal-time-units-per-second)))
+    (when hours
+      (incf timespan (* (* hours 60 60) internal-time-units-per-second)))
 
-   ;;;finalizable
-   #:finalizable
-
-   ;;;app
-   #:current-app
-   #:app-start
-   #:app-quit
-
-   #:app
-   #:windows
-   #:main-window
-
-   #:app-init
-   #:app-add-window
-   #:app-uninit))
+    (values (round timespan))))

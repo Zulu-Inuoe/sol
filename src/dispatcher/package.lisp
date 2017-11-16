@@ -70,4 +70,12 @@
    #:handled
 
    ;;dispatcher-event
-   #:dispatcher-event))
+   #:dispatcher-event
+
+   #:dispatcher-timer
+   #:timer-interval
+   #:e_tick
+
+   #:timer-enabled-p
+   #:timer-start
+   #:timer-stop))

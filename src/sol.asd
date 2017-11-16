@@ -43,6 +43,8 @@
 
    (:file "package-fixup")
 
+   (:file "timespan")
+
    (:file "event")
    (:file "dispose")
    (:file "finalizer")
@@ -61,6 +63,7 @@
       ((:file "sol.dispatcher.impl")))
      (:file "dispatcher")
      (:file "dispatcher-event")
+     (:file "dispatcher-timer")
 
      (:file "simple-dispatcher")
      (:file "current-dispatcher")))
