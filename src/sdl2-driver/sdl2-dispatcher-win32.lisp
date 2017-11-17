@@ -78,6 +78,7 @@
   (values))
 
 (defun %process-sdl-event (dispatcher sdl-event)
+  (declare (ignore dispatcher))
   (event-notify *e_sdl2-event* sdl-event)
   (values))
 
