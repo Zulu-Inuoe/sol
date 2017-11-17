@@ -28,7 +28,11 @@
    (windows
     :type list
     :initform ()
-    :accessor windows)))
+    :accessor windows)
+   (%repl-timer
+    :type dispatcher:dispatcher-timer
+    :initform (make-instance 'dispatcher:dispatcher-timer :interval (timespan-from-millis 100))
+    :accessor %repl-timer)))
 
 (defun (setf main-window) (new-value app)
   (let ((old-value (main-window app)))
@@ -60,14 +64,8 @@
   (values))
 
 (defmethod app-uninit ((app app))
-  (when (main-window app)
-    (event-unsubscribe
-     (ui:e_window-closed (main-window app))
-     app))
-
-  (dolist (w (windows app))
-    (ui:window-close w))
-  (setf (windows app) nil))
+  (declare (ignore app))
+  (values))
 
 (defun app-start (&optional (app-class 'app))
   (when (current-app)
@@ -80,7 +78,7 @@
     (setf *%current-app* app)
     (unwind-protect
          (progn
-           (app-init app)
+           (%app.do-init app)
            (setf success t))
       (unless success
         (setf *%current-app* nil)))
@@ -96,7 +94,7 @@
         ;;or the app was not shut down properly
         ;;uninitialize before exiting
         (unwind-protect
-             (app-uninit app)
+             (%app.do-uninit app)
           (setf *%current-app* nil)))))
   (values))
 
@@ -106,13 +104,57 @@
   (dispatcher:verify-access app)
 
   (unwind-protect
-       (app-uninit app)
+       (%app.do-uninit app)
     (setf *%current-app* nil))
 
   (dispatcher:invoke-shutdown (dispatcher:dispatcher app))
   ;;Shutting down the dispatcher more or less kills the driver anyway
   (drivers:ensure-shutdown-driver)
   (values))
+
+(defun %app.do-init (app)
+  ;;If we're on the swank repl thread, install a timer to handle requests from the repl
+  (when (and (find-package "SWANK")
+             (symbol-value (intern "*EMACS-CONNECTION*" "SWANK"))
+             (eq (bordeaux-threads:current-thread)
+                 (funcall (intern "MCONN.REPL-THREAD" "SWANK") (symbol-value (intern "*EMACS-CONNECTION*" "SWANK")))))
+    (event-subscribe
+     (dispatcher:e_tick (%repl-timer app))
+     nil
+     (lambda (args)
+       (declare (ignore args))
+       (funcall (intern "HANDLE-REQUESTS" "SWANK") (symbol-value (intern "*EMACS-CONNECTION*" "SWANK")) t)))
+    (dispatcher:timer-start (%repl-timer app)))
+
+  ;;If we're on the slynk repl thread, install a timer to handle requests from the repl
+  (when-let ((repl (and (find-package "SLYNK")
+                        (find (bordeaux-threads:current-thread)
+                              (funcall (intern "CONNECTION-CHANNELS" "SLYNK") (funcall (intern "DEFAULT-CONNECTION" "SLYNK")))
+                              :key (intern "CHANNEL-THREAD" "SLYNK")))))
+    (funcall (intern "SEND-PROMPT" "SLYNK-MREPL") repl)
+    (event-subscribe
+     (dispatcher:e_tick (%repl-timer app))
+     nil
+     (lambda (args)
+       (declare (ignore args))
+       (funcall (intern "HANDLE-REQUESTS" "SLYNK") (funcall (intern "DEFAULT-CONNECTION" "SLYNK")) t)))
+    (dispatcher:timer-start (%repl-timer app)))
+
+  (app-init app))
+
+(defun %app.do-uninit (app)
+  (unwind-protect
+       (app-uninit app)
+    (dispatcher:timer-stop (%repl-timer app))
+
+    (when (main-window app)
+      (event-unsubscribe
+       (ui:e_window-closed (main-window app))
+       app))
+
+    (dolist (w (windows app))
+      (ui:window-close w))
+    (setf (windows app) nil)))
 
 (defmethod impl:app-add-window ((app app) window)
   (push window (windows app))
