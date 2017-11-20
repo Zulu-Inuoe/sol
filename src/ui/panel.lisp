@@ -86,4 +86,4 @@
 
 (defmethod draw ((comp panel) renderer)
   (dolist (child (children comp))
-    (draw child)))
+    (draw child renderer)))
