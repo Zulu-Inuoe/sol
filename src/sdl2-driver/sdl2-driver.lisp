@@ -32,6 +32,14 @@
     :reader image-context)))
 
 (defmethod initialize-instance :after ((driver sdl2-driver) &key &allow-other-keys)
+  #+sbcl
+  (sb-int:with-float-traps-masked (:underflow
+                                   :overflow
+                                   :inexact
+                                   :invalid
+                                   :divide-by-zero)
+    (sdl2-ffi.functions:sdl-init (autowrap:mask-apply 'sdl2::sdl-init-flags (list :everything))))
+  #-sbcl
   (sdl2-ffi.functions:sdl-init (autowrap:mask-apply 'sdl2::sdl-init-flags (list :everything)))
   (sdl2-ffi.functions:sdl-set-hint "SDL_MOUSE_FOCUS_CLICKTHROUGH" "1")
   (sdl2-image:init (list :png :jpg :tif))

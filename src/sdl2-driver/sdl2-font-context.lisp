@@ -79,34 +79,68 @@
                               psize))
           (values (cffi:foreign-string-to-lisp buffer :encoding win32:+win32-string-encoding+)))))))
 
+(defun %slurp-file (path)
+  (with-output-to-string (str)
+    (with-open-file (stream path)
+      (loop
+         :for line := (read-line stream nil nil)
+         :while line
+         :doing
+         (write-line #+win32(string-right-trim '(#\return) line) #-win32 line str)))))
+
+#+win32
+(defun %font-directories ()
+  (list
+   (parse-namestring (concatenate 'string (uiop/os:getenv "WINDIR") "\\fonts\\"))))
+
+#-win32
+(defun %font-directories ()
+  (cond
+    ((probe-file "/etc/fonts/fonts.conf")
+     (let ((font-conf (xmls:parse (%slurp-file "/etc/fonts/fonts.conf"))))
+       (loop :for dir-node :in (xmls:xmlrep-find-child-tags "dir" font-conf)
+          :for path := (xmls:xmlrep-string-child dir-node)
+          :when (uiop:directory-exists-p path)
+          :collect (uiop:ensure-directory-pathname path))))
+    (t
+     (loop :for path :in '(#p"/usr/share/fonts/"
+                           #p"/usr/local/share/fonts/"
+                           #p"~/.fonts/")
+          :when (uiop:directory-exists-p path)
+        :collect (uiop:ensure-directory-pathname path)))))
+
+(defun %load-font-file (context path)
+  (let ((font (sdl2-ffi.functions:ttf-open-font (namestring path) 8)))
+    (setf (gethash path (%loaded-font-files context)) font)
+    font))
+
+(defun %font-matches (font family style)
+  (and (string-equal
+        (sdl2-ffi.functions:ttf-font-face-family-name font)
+        family)
+       (string-equal
+        (sdl2-ffi.functions:ttf-font-face-style-name font)
+        style)))
+
 (defun %find-font-file (context family style)
   (loop
      :for k :being :the :hash-keys :in (%loaded-font-files context)
      :using (hash-value v)
-     :if (and (string-equal
-               (sdl2-ffi.functions:ttf-font-face-family-name v)
-               family)
-              (string-equal
-               (sdl2-ffi.functions:ttf-font-face-style-name v)
-               style))
+     :if (%font-matches v family style)
      :do (return-from %find-font-file k))
 
-  ;;Try searching in the fonts directory
-  #+win32
-  (dolist (p (uiop/filesystem:directory-files
-              (concatenate 'string (uiop/os:getenv "WINDIR") "\\fonts\\")))
-    (unless (or
-             (not (member (pathname-type p) '("ttf" "otf") :test 'string-equal))
-             (gethash p (%loaded-font-files context)))
-      (let ((font (sdl2-ttf:open-font (namestring p) 8)))
-        (setf (gethash p (%loaded-font-files context)) font)
-        (when (and (string-equal
-                    (sdl2-ffi.functions:ttf-font-face-family-name font)
-                    family)
-                   (string-equal
-                    (sdl2-ffi.functions:ttf-font-face-style-name font)
-                    style))
-          (return-from %find-font-file p)))))
+  ;;Try searching in the fonts directories
+  (labels ((recurse (dir)
+             (dolist (p (uiop/filesystem:directory-files dir))
+               (unless (or
+                        (not (member (pathname-type p) '("ttf" "otf") :test 'string-equal))
+                        (gethash p (%loaded-font-files context)))
+                 (when (%font-matches (%load-font-file context p) family style)
+                   (return-from %find-font-file p))))
+             (dolist (d (uiop/filesystem:subdirectories dir))
+               (recurse d))))
+    (dolist (d (%font-directories))
+      (recurse d)))
 
   #+win32
   ;;On Windows certain font names are substitutes for other fonts
