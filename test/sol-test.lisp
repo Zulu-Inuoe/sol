@@ -6,8 +6,7 @@
       (pushnew (truename "../") ql:*local-project-directories*))
     (ql:register-local-projects)
     (ql:quickload :sol)
-    (asdf:compile-system :sol)
-    (asdf:load-system :sol)))
+    (ql:quickload :sol.sdl2-driver)))
 
 (defpackage #:sol-test
   (:use #:cl #:sol)
