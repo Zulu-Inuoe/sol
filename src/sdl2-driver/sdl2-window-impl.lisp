@@ -100,7 +100,7 @@
   (ui:draw (ui-window impl) renderer)
   (media:render-present renderer))
 
-#+(and win32 (or slynk swank))
+#+(and windows (or slynk swank))
 (defvar *%sdl-window-first-window* t)
 
 (defmethod initialize-instance :after ((impl sdl2-window-impl)
@@ -121,7 +121,7 @@
   (setf width (or (and width (round width)) 800))
   (setf height (or (and height (round height)) 600))
 
-  #+win32
+  #+windows
   (progn
     (unless (= x sdl2-ffi:+sdl-windowpos-undefined+)
       (incf x (win32:get-system-metrics win32:+sm-cxsizeframe+)))
@@ -158,7 +158,7 @@
     (%sdl2-window-impl.refresh-pos impl)
     (%sdl2-window-impl.refresh-size impl)
 
-    #+(and win32 (or slynk swank))
+    #+(and windows (or slynk swank))
     (progn
       (when (and visible *%sdl-window-first-window*)
         (sdl2:hide-window sdl-window)
@@ -176,6 +176,7 @@
   (event-unsubscribe
    *e_sdl2-event*
    impl)
+  (setf (closed impl) t)
   (dispose (renderer impl))
   (slot-makunbound impl 'renderer)
   (sdl2-ffi.functions:sdl-destroy-window (sdl-window impl))
@@ -208,16 +209,16 @@
   value)
 
 (defmethod window-width ((impl sdl2-window-impl))
-  #-win32
+  #-windows
   (sdl-window-w impl)
-  #+win32
+  #+windows
   (+ (sdl-window-w impl)
      (* 2 (win32:get-system-metrics win32:+sm-cxsizeframe+))))
 
 (defmethod (setf window-width) (value (impl sdl2-window-impl))
   (setf value (round value))
   (unless (= value (window-width impl))
-    #+win32
+    #+windows
     (decf value (* 2 (win32:get-system-metrics win32:+sm-cxsizeframe+)))
 
     (sdl2-ffi.functions:sdl-set-window-size
@@ -228,9 +229,9 @@
   (window-width impl))
 
 (defmethod window-height ((impl sdl2-window-impl))
-  #-win32
+  #-windows
   (sdl-window-h impl)
-  #+win32
+  #+windows
   (+ (sdl-window-h impl)
      (win32:get-system-metrics win32:+sm-cycaption+)
      (* 2 (win32:get-system-metrics win32:+sm-cysizeframe+))))
@@ -238,7 +239,7 @@
 (defmethod (setf window-height) (value (impl sdl2-window-impl))
   (setf value (round value))
   (unless (= value (window-height impl))
-    #+win32
+    #+windows
     (decf value (+ (win32:get-system-metrics win32:+sm-cycaption+)
                    (* 2 (win32:get-system-metrics win32:+sm-cysizeframe+))))
     (sdl2-ffi.functions:sdl-set-window-size
