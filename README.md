@@ -1,6 +1,8 @@
 # Overview
 Common Lisp libraries & framework for UI applications.
 
+Yet Another Wannabe GUI Library
+
 # Developer Setup
 
 ## git repos
@@ -18,8 +20,9 @@ git clone https://github.com/Zulu-Inuoe/win32.git
 ## Dependencies
 
 ### Windows
-NOTE: Need to install libffi
-NOTE: Need to build SDL_gpu
+**NOTE**: Need to install libffi
+
+**NOTE**: Need to build SDL_gpu
 
 TBD
 

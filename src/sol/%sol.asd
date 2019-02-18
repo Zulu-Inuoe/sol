@@ -143,7 +143,6 @@
    #:cl-heap
    #:defpackage-plus
    #:parse-float
-   #:raw-bindings-sdl2
    #:split-sequence
    #:trivial-garbage
    #:xmls))

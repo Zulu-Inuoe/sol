@@ -26,6 +26,5 @@
   :license "zlib/libpng License <http://opensource.org/licenses/zlib-license.php>"
   :serial t
   :depends-on
-  (#:cffi-libffi
-   #:trivial-features
+  (#:trivial-features
    #:%sol))

@@ -28,8 +28,7 @@
    (#:impl #:sol.ui.impl)
    (#:input #:sol.input)
    (#:media #:sol.media)
-   (#:media.colors #:sol.media.colors)
-   (#:sdl2 #:raw-bindings-sdl2))
+   (#:media.colors #:sol.media.colors))
   (:export
    ;;Global accessors
    #:active-focus-manager

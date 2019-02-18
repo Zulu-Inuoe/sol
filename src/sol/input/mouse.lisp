@@ -23,69 +23,81 @@
 (defvar *%mouse-cursors* (make-hash-table))
 
 (defun get-mouse-cursor ()
-  (let ((cur (sdl2:sdl-get-cursor)))
-    (when (cffi:pointer-eq cur (sdl2:sdl-get-default-cursor))
-      (return-from get-mouse-cursor :default))
-    (loop
-       :for k :being :the :hash-keys :in *%mouse-cursors*
-       :using (hash-value v)
-       :when (cffi:pointer-eq cur v)
-       :do (return-from get-mouse-cursor k))
-    :custom))
+  ;; TODO
+  ;; (let ((cur (sdl2:sdl-get-cursor)))
+  ;;   (when (cffi:pointer-eq cur (sdl2:sdl-get-default-cursor))
+  ;;     (return-from get-mouse-cursor :default))
+  ;;   (loop
+  ;;      :for k :being :the :hash-keys :in *%mouse-cursors*
+  ;;      :using (hash-value v)
+  ;;      :when (cffi:pointer-eq cur v)
+  ;;      :do (return-from get-mouse-cursor k))
+  ;;   :custom)
+  )
+
 
 (defun set-mouse-cursor (cursor)
-  (case cursor
-    (:default
-     (progn
-       (sdl2:sdl-set-cursor (sdl2:sdl-get-default-cursor))
-       (sdl2:sdl-show-cursor sdl2:+sdl-enable+)))
-    (:none
-     (sdl2:sdl-show-cursor sdl2:+sdl-disable+))
-    (t
-     (if-let ((sdl-cursor (gethash cursor *%mouse-cursors*)))
-       (progn
-         (sdl2:sdl-set-cursor sdl-cursor)
-         (sdl2:sdl-show-cursor sdl2:+sdl-enable+))
-       (sdl2:sdl-show-cursor sdl2:+sdl-disable+))))
+  (declare (ignore cursor))
+  ;; TODO
+  ;; (case cursor
+  ;;   (:default
+  ;;    (progn
+  ;;      (sdl2:sdl-set-cursor (sdl2:sdl-get-default-cursor))
+  ;;      (sdl2:sdl-show-cursor sdl2:+sdl-enable+)))
+  ;;   (:none
+  ;;    (sdl2:sdl-show-cursor sdl2:+sdl-disable+))
+  ;;   (t
+  ;;    (if-let ((sdl-cursor (gethash cursor *%mouse-cursors*)))
+  ;;      (progn
+  ;;        (sdl2:sdl-set-cursor sdl-cursor)
+  ;;        (sdl2:sdl-show-cursor sdl2:+sdl-enable+))
+  ;;      (sdl2:sdl-show-cursor sdl2:+sdl-disable+))))
   (values))
 
 (defun capture-mouse ()
-  (sdl2:sdl-capture-mouse 1)
+  ;; TODO
+  ;; (sdl2:sdl-capture-mouse 1)
   (values))
 
 (defun release-mouse ()
-  (sdl2:sdl-capture-mouse 0)
+  ;; TODO
+  ;; (sdl2:sdl-capture-mouse 0)
   (values))
 
 (defun mouse-position ()
-  (cffi:with-foreign-objects ((x :int)
-                              (y :int))
-    (sdl2:sdl-get-global-mouse-state x y)
-    (values (cffi:mem-ref x :int) (cffi:mem-ref y :int))))
+  ;; TODO
+  ;; (cffi:with-foreign-objects ((x :int)
+  ;;                             (y :int))
+  ;;   (sdl2:sdl-get-global-mouse-state x y)
+  ;;   (values (cffi:mem-ref x :int) (cffi:mem-ref y :int)))
+  )
 
 (defun %mouse-init ()
-  (setf (gethash :arrow *%mouse-cursors*)
-        (sdl2:sdl-create-system-cursor sdl2:+sdl-system-cursor-arrow+))
-  (setf (gethash :cross *%mouse-cursors*)
-        (sdl2:sdl-create-system-cursor sdl2:+sdl-system-cursor-crosshair+))
-  (setf (gethash :hand *%mouse-cursors*)
-        (sdl2:sdl-create-system-cursor sdl2:+sdl-system-cursor-hand+))
-  (setf (gethash :ibeam *%mouse-cursors*)
-        (sdl2:sdl-create-system-cursor sdl2:+sdl-system-cursor-ibeam+))
-  (setf (gethash :size-nesw *%mouse-cursors*)
-        (sdl2:sdl-create-system-cursor sdl2:+sdl-system-cursor-sizenesw+))
-  (setf (gethash :size-ns *%mouse-cursors*)
-        (sdl2:sdl-create-system-cursor sdl2:+sdl-system-cursor-sizens+))
-  (setf (gethash :size-nwse *%mouse-cursors*)
-        (sdl2:sdl-create-system-cursor sdl2:+sdl-system-cursor-sizenwse+))
-  (setf (gethash :size-we *%mouse-cursors*)
-        (sdl2:sdl-create-system-cursor sdl2:+sdl-system-cursor-sizewe+))
-  (setf (gethash :wait *%mouse-cursors*)
-        (sdl2:sdl-create-system-cursor sdl2:+sdl-system-cursor-wait+)))
+  ;; TODO
+  ;; (setf (gethash :arrow *%mouse-cursors*)
+  ;;       (sdl2:sdl-create-system-cursor sdl2:+sdl-system-cursor-arrow+)
+  ;;       (gethash :cross *%mouse-cursors*)
+  ;;       (sdl2:sdl-create-system-cursor sdl2:+sdl-system-cursor-crosshair+)
+  ;;       (gethash :hand *%mouse-cursors*)
+  ;;       (sdl2:sdl-create-system-cursor sdl2:+sdl-system-cursor-hand+)
+  ;;       (gethash :ibeam *%mouse-cursors*)
+  ;;       (sdl2:sdl-create-system-cursor sdl2:+sdl-system-cursor-ibeam+)
+  ;;       (gethash :size-nesw *%mouse-cursors*)
+  ;;       (sdl2:sdl-create-system-cursor sdl2:+sdl-system-cursor-sizenesw+)
+  ;;       (gethash :size-ns *%mouse-cursors*)
+  ;;       (sdl2:sdl-create-system-cursor sdl2:+sdl-system-cursor-sizens+)
+  ;;       (gethash :size-nwse *%mouse-cursors*)
+  ;;       (sdl2:sdl-create-system-cursor sdl2:+sdl-system-cursor-sizenwse+)
+  ;;       (gethash :size-we *%mouse-cursors*)
+  ;;       (sdl2:sdl-create-system-cursor sdl2:+sdl-system-cursor-sizewe+)
+  ;;       (gethash :wait *%mouse-cursors*)
+  ;;       (sdl2:sdl-create-system-cursor sdl2:+sdl-system-cursor-wait+))
+  )
 
 (defun %mouse-uninit ()
-  (maphash-values
-   (lambda (v)
-     (sdl2:sdl-free-cursor v))
-   *%mouse-cursors*)
+  ;; TODO
+  ;; (maphash-values
+  ;;  (lambda (v)
+  ;;    (sdl2:sdl-free-cursor v))
+  ;;  *%mouse-cursors*)
   (clrhash *%mouse-cursors*))

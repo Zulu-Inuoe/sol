@@ -122,12 +122,15 @@
 ;;  (event-subscribe
 ;;   (sol:e_time-tick sol:*sol-context*)
 ;;   comp
-;;   '%textbox-on-dt)
-  (sdl2:sdl-start-text-input))
+  ;;   '%textbox-on-dt)
+  ;; TODO
+  ;; (sdl2:sdl-start-text-input)
+  )
 
 (defun %textbox-on-lost-focus (comp args)
   (declare (ignore comp args))
-  (sdl2:sdl-stop-text-input)
+  ;; TODO
+  ;; (sdl2:sdl-stop-text-input)
 ;;  (event-unsubscribe
 ;;   (sol:e_time-tick sol:*sol-context*)
 ;;   comp)
@@ -181,10 +184,14 @@
      (setf (%cursor-draw comp) t))
     (:scancode-v
      (when (input:ctrl (args args))
-       (%textbox-input-string-at-cursor comp (sdl2:sdl-get-clipboard-text))))
+       ;; TODO
+       ;; (%textbox-input-string-at-cursor comp (sdl2:sdl-get-clipboard-text))
+       ))
     (:scancode-c
      (when (input:ctrl (args args))
-       (sdl2:sdl-set-clipboard-text "")))))
+       ;; TODO
+       ;; (sdl2:sdl-set-clipboard-text "")
+       ))))
 
 (defun %textbox-on-text-input (comp args)
   (setf (%time-since-last-blink comp) 0)
