@@ -60,24 +60,17 @@
 
 #+windows
 (defun %get-font-substitute (font-name)
-  (cffi:with-foreign-object (psize :uint32)
-    (when (zerop (win32:reg-get-value (cffi:make-pointer win32:+hkey-local-machine+)
-                                      "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\FontSubstitutes"
-                                      font-name
-                                      win32:+rrf-rt-reg-sz+
-                                      (cffi:null-pointer)
-                                      (cffi:null-pointer)
-                                      psize))
-      (cffi:with-foreign-object (buffer :uint8 (cffi:mem-ref psize :uint32))
-        (when (zerop
-               (win32:reg-get-value (cffi:make-pointer win32:+hkey-local-machine+)
-                              "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\FontSubstitutes"
-                              font-name
-                              win32:+rrf-rt-reg-sz+
-                              (cffi:null-pointer)
-                              buffer
-                              psize))
-          (values (cffi:foreign-string-to-lisp buffer :encoding win32:+win32-string-encoding+)))))))
+  (let ((registry-key "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\FontSubstitutes"))
+    (cffi:with-foreign-object (psize 'win32:dword)
+      (when (zerop (win32:reg-get-value win32:+hkey-local-machine+ registry-key
+                                        font-name win32:+rrf-rt-reg-sz+
+                                        (cffi:null-pointer) (cffi:null-pointer) psize))
+        (cffi:with-foreign-object (buffer :uint8 (cffi:mem-ref psize 'win32:dword))
+          (when (zerop
+                 (win32:reg-get-value win32:+hkey-local-machine+ registry-key
+                                      font-name win32:+rrf-rt-reg-sz+
+                                      (cffi:null-pointer) buffer psize))
+            (values (cffi:foreign-string-to-lisp buffer :encoding win32:+win32-string-encoding+))))))))
 
 (defun %slurp-file (path)
   (with-output-to-string (str)
@@ -91,7 +84,7 @@
 #+windows
 (defun %font-directories ()
   (list
-   (parse-namestring (concatenate 'string (uiop/os:getenv "WINDIR") "\\fonts\\"))))
+   (uiop:merge-pathnames* #p"fonts/" (uiop:getenv-absolute-directory "WINDIR"))))
 
 #-windows
 (defun %font-directories ()
