@@ -66,6 +66,7 @@
   (#:alexandria
    #:bordeaux-threads
    #:cffi
+   #:cffi-libffi
    #:defpackage-plus
    #:raw-bindings-sdl2
    #:raw-bindings-sdl2-image
